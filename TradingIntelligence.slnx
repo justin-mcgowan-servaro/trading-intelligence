@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="TradingIntelligence.Api/TradingIntelligence.Api.csproj" />
+  <Project Path="TradingIntelligence.Core/TradingIntelligence.Core.csproj" />
+  <Project Path="TradingIntelligence.Infrastructure/TradingIntelligence.Infrastructure.csproj" />
+  <Project Path="TradingIntelligence.Tests/TradingIntelligence.Tests.csproj" />
+</Solution>

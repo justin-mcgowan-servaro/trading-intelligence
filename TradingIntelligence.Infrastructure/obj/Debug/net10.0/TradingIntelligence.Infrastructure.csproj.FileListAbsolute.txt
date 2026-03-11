@@ -1,0 +1,17 @@
+C:\Development\Projects\TradingIntelligence\TradingIntelligence.Infrastructure\bin\Debug\net10.0\TradingIntelligence.Infrastructure.deps.json
+C:\Development\Projects\TradingIntelligence\TradingIntelligence.Infrastructure\bin\Debug\net10.0\TradingIntelligence.Infrastructure.runtimeconfig.json
+C:\Development\Projects\TradingIntelligence\TradingIntelligence.Infrastructure\bin\Debug\net10.0\TradingIntelligence.Infrastructure.dll
+C:\Development\Projects\TradingIntelligence\TradingIntelligence.Infrastructure\bin\Debug\net10.0\TradingIntelligence.Infrastructure.pdb
+C:\Development\Projects\TradingIntelligence\TradingIntelligence.Infrastructure\bin\Debug\net10.0\TradingIntelligence.Core.dll
+C:\Development\Projects\TradingIntelligence\TradingIntelligence.Infrastructure\bin\Debug\net10.0\TradingIntelligence.Core.pdb
+C:\Development\Projects\TradingIntelligence\TradingIntelligence.Infrastructure\obj\Debug\net10.0\TradingIntelligence.Infrastructure.csproj.AssemblyReference.cache
+C:\Development\Projects\TradingIntelligence\TradingIntelligence.Infrastructure\obj\Debug\net10.0\TradingIntelligence.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+C:\Development\Projects\TradingIntelligence\TradingIntelligence.Infrastructure\obj\Debug\net10.0\TradingIntelligence.Infrastructure.AssemblyInfoInputs.cache
+C:\Development\Projects\TradingIntelligence\TradingIntelligence.Infrastructure\obj\Debug\net10.0\TradingIntelligence.Infrastructure.AssemblyInfo.cs
+C:\Development\Projects\TradingIntelligence\TradingIntelligence.Infrastructure\obj\Debug\net10.0\TradingIntelligence.Infrastructure.csproj.CoreCompileInputs.cache
+C:\Development\Projects\TradingIntelligence\TradingIntelligence.Infrastructure\obj\Debug\net10.0\TradingI.9AA47824.Up2Date
+C:\Development\Projects\TradingIntelligence\TradingIntelligence.Infrastructure\obj\Debug\net10.0\TradingIntelligence.Infrastructure.dll
+C:\Development\Projects\TradingIntelligence\TradingIntelligence.Infrastructure\obj\Debug\net10.0\refint\TradingIntelligence.Infrastructure.dll
+C:\Development\Projects\TradingIntelligence\TradingIntelligence.Infrastructure\obj\Debug\net10.0\TradingIntelligence.Infrastructure.pdb
+C:\Development\Projects\TradingIntelligence\TradingIntelligence.Infrastructure\obj\Debug\net10.0\TradingIntelligence.Infrastructure.genruntimeconfig.cache
+C:\Development\Projects\TradingIntelligence\TradingIntelligence.Infrastructure\obj\Debug\net10.0\ref\TradingIntelligence.Infrastructure.dll
