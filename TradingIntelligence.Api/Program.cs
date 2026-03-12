@@ -142,8 +142,7 @@ builder.Services.AddQuartz(q =>
     q.AddTrigger(opts => opts
         .ForJob(stockTwitsJobKey)
         .WithIdentity("StockTwitsTrigger")
-        //.WithCronSchedule("0 0/30 * * * ?")
-        .WithCronSchedule("0 4 21 * * ?")
+        .WithCronSchedule("0 0/30 * * * ?")
         //.WithCronSchedule("0 23 13 * * ?")
         .StartAt(DateBuilder.FutureDate(30, IntervalUnit.Second)));
 
@@ -189,8 +188,7 @@ builder.Services.AddQuartz(q =>
     q.AddTrigger(opts => opts
         .ForJob(fearGreedJobKey)
         .WithIdentity("FearGreedCollectorTrigger")
-        //.WithCronSchedule("0 45 * * * ?")
-        .WithCronSchedule("0 3 21 * * ?")
+        .WithCronSchedule("0 45 * * * ?")
         .StartAt(DateBuilder.FutureDate(15, IntervalUnit.Second)));
 
     // Google Trends — every 2 hours

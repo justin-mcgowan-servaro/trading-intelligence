@@ -30,7 +30,9 @@ public class FearGreedCollector
         {
             _logger.LogInformation("Fear & Greed collection started");
 
-            var url = "https://production.dataviz.cnn.io/index/fearandgreed/graphdata";
+            //var url = "https://production.dataviz.cnn.io/index/fearandgreed/graphdata";
+            var url = "https://api.alternative.me/fng/?limit=1&format=json";
+
 
             var request = new HttpRequestMessage(HttpMethod.Get, url);
             request.Headers.Add("User-Agent",
@@ -52,20 +54,25 @@ public class FearGreedCollector
                 .ReadAsStringAsync(cancellationToken);
             var node = JsonNode.Parse(json);
 
-            var score = node?["fear_and_greed"]?["score"]?.GetValue<double>();
-            var rating = node?["fear_and_greed"]?["rating"]
-                ?.GetValue<string>() ?? "unknown";
+            //var score = node?["fear_and_greed"]?["score"]?.GetValue<double>();
+            //var rating = node?["fear_and_greed"]?["rating"]
+            //    ?.GetValue<string>() ?? "unknown";
 
-            if (score == null) return;
+            //if (score == null) return;
+
+            var score = node?["data"]?[0]?["value"]?.GetValue<string>();
+            var rating = node?["data"]?[0]?["value_classification"]?.GetValue<string>() ?? "unknown";
+
+            if (score == null || !double.TryParse(score, out var scoreValue)) return;
 
             var result = JsonSerializer.Serialize(new
             {
-                Score = Math.Round(score.Value, 1),
+                Score = Math.Round(scoreValue, 1),
                 Rating = rating,
                 CollectedAt = DateTime.UtcNow,
                 CollectedAtSast = MarketSessionHelper.ToSast(DateTime.UtcNow),
                 // Derive market context from score
-                Context = score.Value switch
+                Context = scoreValue switch
                 {
                     >= 75 => "Extreme Greed — market may be overextended",
                     >= 55 => "Greed — bullish momentum present",
@@ -81,7 +88,7 @@ public class FearGreedCollector
 
             _logger.LogInformation(
                 "Fear & Greed updated — Score: {Score} ({Rating})",
-                Math.Round(score.Value, 1), rating);
+                scoreValue, rating);
         }
         catch (Exception ex)
         {
