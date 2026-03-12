@@ -64,7 +64,8 @@ builder.Services.AddQuartz(q =>
     q.AddTrigger(opts => opts
         .ForJob(stockTwitsJobKey)
         .WithIdentity("StockTwitsTrigger")
-        .WithCronSchedule("0 0/30 * * * ?")
+        //.WithCronSchedule("0 0/30 * * * ?")
+        .WithCronSchedule("0 24 11 * * ?")
         .StartNow());   // ← StartNow fires immediately on startup
 });
 
