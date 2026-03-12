@@ -7,6 +7,12 @@ using TradingIntelligence.Infrastructure.Data;
 using TradingIntelligence.Infrastructure.Helpers;
 using TradingIntelligence.Infrastructure.Jobs;
 using TradingIntelligence.Infrastructure.Services;
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using TradingIntelligence.Api.Hubs;
+using TradingIntelligence.Api.Services;
+using TradingIntelligence.Core.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,6 +37,42 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
     ConnectionMultiplexer.Connect(
         builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379"));
 
+// ── JWT Authentication ────────────────────────────────────────────────────────
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(
+                    builder.Configuration["Jwt:SecretKey"]
+                    ?? throw new InvalidOperationException("JWT secret not configured")))
+        };
+
+        // Allow SignalR to authenticate via query string token
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) &&
+                    path.StartsWithSegments("/hubs"))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            }
+        };
+    });
+
+builder.Services.AddAuthorization();
 // ── HttpClients ───────────────────────────────────────────────────────────────
 builder.Services.AddHttpClient("Reddit");
 builder.Services.AddHttpClient("StockTwits");
@@ -43,6 +85,8 @@ builder.Services.AddScoped<StockTwitsCollector>();
 builder.Services.AddScoped<NewsCollector>();
 builder.Services.AddScoped<VolumeCollector>();
 
+builder.Services.AddScoped<IRealtimeNotifier, SignalRNotifier>();
+
 // ── Background Services ───────────────────────────────────────────────────────
 builder.Services.AddSingleton<SignalAggregatorService>();
 builder.Services.AddHostedService(sp =>
@@ -54,7 +98,8 @@ builder.Services.AddSingleton<MomentumScoringService>(sp =>
         sp.GetRequiredService<IServiceScopeFactory>(),
         sp.GetRequiredService<SignalAggregatorService>(),
         sp.GetRequiredService<IConfiguration>(),
-        sp.GetRequiredService<ILogger<MomentumScoringService>>()));
+        sp.GetRequiredService<ILogger<MomentumScoringService>>(),
+        sp.GetRequiredService<IRealtimeNotifier>()));
 
 // ← This is the line that was missing — registers it as a hosted service
 builder.Services.AddHostedService(sp =>
@@ -148,8 +193,10 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowAngular");
 app.UseSerilogRequestLogging();
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<MomentumHub>("/hubs/momentum");
 
 // ── Health endpoint ───────────────────────────────────────────────────────────
 app.MapGet("/health", (SignalAggregatorService aggregator) => Results.Ok(new

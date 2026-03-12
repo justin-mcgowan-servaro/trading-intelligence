@@ -1,14 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Text.Json;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Configuration;
 using OpenAI.Chat;
 using StackExchange.Redis;
+using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Text.Json;
 using TradingIntelligence.Core.Enums;
+using TradingIntelligence.Core.Interfaces;
 using TradingIntelligence.Core.Models;
 using TradingIntelligence.Core.Prompts;
 using TradingIntelligence.Infrastructure.Data;
@@ -24,6 +25,8 @@ public class MomentumScoringService : BackgroundService
     private readonly IConfiguration _config;
     private readonly ILogger<MomentumScoringService> _logger;
 
+    private readonly IRealtimeNotifier _notifier;
+
     private const decimal MinScoreForAi = 60m;
 
     public MomentumScoringService(
@@ -31,13 +34,15 @@ public class MomentumScoringService : BackgroundService
         IServiceScopeFactory scopeFactory,
         SignalAggregatorService aggregator,
         IConfiguration config,
-        ILogger<MomentumScoringService> logger)
+        ILogger<MomentumScoringService> logger,
+        IRealtimeNotifier notifier)
     {
         _redis = redis;
         _scopeFactory = scopeFactory;
         _aggregator = aggregator;
         _config = config;
         _logger = logger;
+        _notifier = notifier;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -168,6 +173,26 @@ public class MomentumScoringService : BackgroundService
                     ScoredAt = DateTime.UtcNow,
                     ScoredAtSast = MarketSessionHelper.ToSast(DateTime.UtcNow)
                 }));
+
+            // ── Push to Angular via SignalR ──────────────────────────────────────
+            await _notifier.NotifyMomentumUpdate(new MomentumScoreResult
+            {
+                TickerSymbol = ticker,
+                TotalScore = totalScore,
+                RedditScore = redditScore,
+                NewsScore = newsScore,
+                VolumeScore = volumeScore,
+                OptionsScore = optionsScore,
+                SentimentScore = sentimentScore,
+                TradeBias = tradeBias,
+                Confidence = totalScore >= 80 ? "HIGH"
+                               : totalScore >= 60 ? "MEDIUM" : "LOW",
+                SignalSummary = BuildSignalSummary(signals),
+                AiAnalysis = aiAnalysis,
+                Session = session,
+                ScoredAt = DateTime.UtcNow,
+                ScoredAtSast = MarketSessionHelper.ToSast(DateTime.UtcNow)
+            }, cancellationToken);
         }
         catch (Exception ex)
         {

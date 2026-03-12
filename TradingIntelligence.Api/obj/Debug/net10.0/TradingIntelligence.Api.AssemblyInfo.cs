@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("TradingIntelligence.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f79b376ee4e8ac6cecbe9b0f71543f50a07a4cf3")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f52d408c25f94004580896dba7668a4d656858db")]
 [assembly: System.Reflection.AssemblyProductAttribute("TradingIntelligence.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("TradingIntelligence.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
