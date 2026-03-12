@@ -138,13 +138,17 @@ builder.Services.AddQuartz(q =>
 
     // StockTwits collector — every 30 minutes
     var stockTwitsJobKey = new JobKey("StockTwitsCollectorJob");
-    q.AddJob<StockTwitsCollectorJob>(opts => opts.WithIdentity(stockTwitsJobKey));
+    q.AddJob<StockTwitsCollectorJob>(opts => opts
+        .WithIdentity(stockTwitsJobKey)
+        .StoreDurably());
     q.AddTrigger(opts => opts
         .ForJob(stockTwitsJobKey)
-        .WithIdentity("StockTwitsTrigger")
-        .WithCronSchedule("0 0/30 * * * ?")
-        //.WithCronSchedule("0 23 13 * * ?")
-        .StartAt(DateBuilder.FutureDate(30, IntervalUnit.Second)));
+        .WithIdentity("StockTwitsStartupTrigger")
+        .StartAt(DateBuilder.FutureDate(40, IntervalUnit.Second)));
+    q.AddTrigger(opts => opts
+        .ForJob(stockTwitsJobKey)
+        .WithIdentity("StockTwitsRecurringTrigger")
+        .WithCronSchedule("0 0/30 * * * ?"));
 
     // News collector — every hour at :15
     var newsJobKey = new JobKey("NewsCollectorJob");
@@ -183,13 +187,19 @@ builder.Services.AddQuartz(q =>
         .StartAt(DateBuilder.FutureDate(120, IntervalUnit.Second)));
 
     // Fear & Greed — every hour at :45
+    // Fear & Greed — fire once on startup, then every hour at :45
     var fearGreedJobKey = new JobKey("FearGreedCollectorJob");
-    q.AddJob<FearGreedCollectorJob>(opts => opts.WithIdentity(fearGreedJobKey));
+    q.AddJob<FearGreedCollectorJob>(opts => opts
+        .WithIdentity(fearGreedJobKey)
+        .StoreDurably());
     q.AddTrigger(opts => opts
         .ForJob(fearGreedJobKey)
-        .WithIdentity("FearGreedCollectorTrigger")
-        .WithCronSchedule("0 45 * * * ?")
-        .StartAt(DateBuilder.FutureDate(15, IntervalUnit.Second)));
+        .WithIdentity("FearGreedStartupTrigger")
+        .StartAt(DateBuilder.FutureDate(20, IntervalUnit.Second)));
+    q.AddTrigger(opts => opts
+        .ForJob(fearGreedJobKey)
+        .WithIdentity("FearGreedRecurringTrigger")
+        .WithCronSchedule("0 45 * * * ?"));
 
     // Google Trends — every 2 hours
     var googleTrendsJobKey = new JobKey("GoogleTrendsCollectorJob");
