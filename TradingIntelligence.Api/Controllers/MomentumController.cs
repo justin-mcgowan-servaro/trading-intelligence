@@ -28,27 +28,28 @@ public class MomentumController : ControllerBase
         [FromQuery] int limit = 20,
         CancellationToken cancellationToken = default)
     {
-        var scores = await _db.MomentumScores
-            .GroupBy(s => s.TickerSymbol)
-            .Select(g => g.OrderByDescending(s => s.ScoredAt).First())
-            .OrderByDescending(s => s.TotalScore)
-            .Take(limit)
-            .Select(s => new
-            {
-                s.TickerSymbol,
-                s.TotalScore,
-                s.RedditScore,
-                s.NewsScore,
-                s.VolumeScore,
-                s.OptionsScore,
-                s.SentimentScore,
-                TradeBias = s.TradeBias.ToString(),
-                Session = s.Session.ToString(),
-                ScoredAtSast = MarketSessionHelper.ToSast(s.ScoredAt),
-                ScoredAt = s.ScoredAt,
-                HasAiAnalysis = !string.IsNullOrEmpty(s.AiAnalysis)
-            })
-            .ToListAsync(cancellationToken);
+        var data = await _db.MomentumScores
+    .GroupBy(s => s.TickerSymbol)
+    .Select(g => g.OrderByDescending(s => s.ScoredAt).First())
+    .OrderByDescending(s => s.TotalScore)
+    .Take(limit)
+    .ToListAsync(cancellationToken);
+
+        var scores = data.Select(s => new
+        {
+            s.TickerSymbol,
+            s.TotalScore,
+            s.RedditScore,
+            s.NewsScore,
+            s.VolumeScore,
+            s.OptionsScore,
+            s.SentimentScore,
+            TradeBias = s.TradeBias.ToString(),
+            Session = s.Session.ToString(),
+            ScoredAtSast = MarketSessionHelper.ToSast(s.ScoredAt),
+            ScoredAt = s.ScoredAt,
+            HasAiAnalysis = !string.IsNullOrEmpty(s.AiAnalysis)
+        }).ToList();
 
         return Ok(new
         {
