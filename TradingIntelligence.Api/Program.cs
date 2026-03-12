@@ -127,92 +127,96 @@ builder.Services.AddHostedService(sp =>
 // ── Quartz Scheduler ──────────────────────────────────────────────────────────
 builder.Services.AddQuartz(q =>
 {
-    // Reddit collector — hourly
-    var redditJobKey = new JobKey("RedditCollectorJob");
-    q.AddJob<RedditCollectorJob>(opts => opts.WithIdentity(redditJobKey));
-    q.AddTrigger(opts => opts
-        .ForJob(redditJobKey)
-        .WithIdentity("RedditCollectorTrigger")
-        .WithCronSchedule("0 0 * * * ?")
-        .StartNow());
-
-    // StockTwits collector — every 30 minutes
+    // StockTwits — startup + every 30 mins
     var stockTwitsJobKey = new JobKey("StockTwitsCollectorJob");
     q.AddJob<StockTwitsCollectorJob>(opts => opts
-        .WithIdentity(stockTwitsJobKey)
-        .StoreDurably());
+        .WithIdentity(stockTwitsJobKey).StoreDurably());
     q.AddTrigger(opts => opts
         .ForJob(stockTwitsJobKey)
         .WithIdentity("StockTwitsStartupTrigger")
-        .StartAt(DateBuilder.FutureDate(40, IntervalUnit.Second)));
+        .StartAt(DateBuilder.FutureDate(30, IntervalUnit.Second)));
     q.AddTrigger(opts => opts
         .ForJob(stockTwitsJobKey)
         .WithIdentity("StockTwitsRecurringTrigger")
-        //.WithCronSchedule("0 0/30 * * * ?"));
-        .WithCronSchedule("0 24 21 * * ?"));
+        .WithCronSchedule("0 0/30 * * * ?"));
 
-    // News collector — every hour at :15
-    var newsJobKey = new JobKey("NewsCollectorJob");
-    q.AddJob<NewsCollectorJob>(opts => opts.WithIdentity(newsJobKey));
-    q.AddTrigger(opts => opts
-        .ForJob(newsJobKey)
-        .WithIdentity("NewsCollectorTrigger")
-        .WithCronSchedule("0 15 * * * ?")
-        .StartAt(DateBuilder.FutureDate(45, IntervalUnit.Second)));
-
-    // Volume collector — every 4 hours
-    var volumeJobKey = new JobKey("VolumeCollectorJob");
-    q.AddJob<VolumeCollectorJob>(opts => opts.WithIdentity(volumeJobKey));
-    q.AddTrigger(opts => opts
-        .ForJob(volumeJobKey)
-        .WithIdentity("VolumeCollectorTrigger")
-        .WithCronSchedule("0 0 */4 * * ?")
-        .StartAt(DateBuilder.FutureDate(60, IntervalUnit.Second)));
-
-    // NewsAPI collector — every hour at :30
+    // NewsAPI — startup + every hour at :30
     var newsApiJobKey = new JobKey("NewsApiCollectorJob");
-    q.AddJob<NewsApiCollectorJob>(opts => opts.WithIdentity(newsApiJobKey));
+    q.AddJob<NewsApiCollectorJob>(opts => opts
+        .WithIdentity(newsApiJobKey).StoreDurably());
     q.AddTrigger(opts => opts
         .ForJob(newsApiJobKey)
-        .WithIdentity("NewsApiCollectorTrigger")
-        //.WithCronSchedule("0 30 * * * ?")
-        .WithCronSchedule("0 24 21 * * ?")
-        .StartAt(DateBuilder.FutureDate(90, IntervalUnit.Second)));
-
-    // Polygon collector — every 4 hours
-    var polygonJobKey = new JobKey("PolygonCollectorJob");
-    q.AddJob<PolygonCollectorJob>(opts => opts.WithIdentity(polygonJobKey));
+        .WithIdentity("NewsApiStartupTrigger")
+        .StartAt(DateBuilder.FutureDate(60, IntervalUnit.Second)));
     q.AddTrigger(opts => opts
-        .ForJob(polygonJobKey)
-        .WithIdentity("PolygonCollectorTrigger")
-        .WithCronSchedule("0 0 */4 * * ?")
-        .StartAt(DateBuilder.FutureDate(120, IntervalUnit.Second)));
+        .ForJob(newsApiJobKey)
+        .WithIdentity("NewsApiRecurringTrigger")
+        .WithCronSchedule("0 30 * * * ?"));
 
-    // Fear & Greed — every hour at :45
-    // Fear & Greed — fire once on startup, then every hour at :45
+    // Fear & Greed — startup + every hour at :45
     var fearGreedJobKey = new JobKey("FearGreedCollectorJob");
     q.AddJob<FearGreedCollectorJob>(opts => opts
-        .WithIdentity(fearGreedJobKey)
-        .StoreDurably());
+        .WithIdentity(fearGreedJobKey).StoreDurably());
     q.AddTrigger(opts => opts
         .ForJob(fearGreedJobKey)
         .WithIdentity("FearGreedStartupTrigger")
-        .StartAt(DateBuilder.FutureDate(20, IntervalUnit.Second)));
+        .StartAt(DateBuilder.FutureDate(15, IntervalUnit.Second)));
     q.AddTrigger(opts => opts
         .ForJob(fearGreedJobKey)
         .WithIdentity("FearGreedRecurringTrigger")
         .WithCronSchedule("0 45 * * * ?"));
 
-    // Google Trends — every 2 hours
+    // Polygon — startup + every 4 hours
+    var polygonJobKey = new JobKey("PolygonCollectorJob");
+    q.AddJob<PolygonCollectorJob>(opts => opts
+        .WithIdentity(polygonJobKey).StoreDurably());
+    q.AddTrigger(opts => opts
+        .ForJob(polygonJobKey)
+        .WithIdentity("PolygonStartupTrigger")
+        .StartAt(DateBuilder.FutureDate(90, IntervalUnit.Second)));
+    q.AddTrigger(opts => opts
+        .ForJob(polygonJobKey)
+        .WithIdentity("PolygonRecurringTrigger")
+        .WithCronSchedule("0 0 */4 * * ?"));
+
+    // Google Trends — startup + every 2 hours
     var googleTrendsJobKey = new JobKey("GoogleTrendsCollectorJob");
-    q.AddJob<GoogleTrendsCollectorJob>(opts => opts.WithIdentity(googleTrendsJobKey));
+    q.AddJob<GoogleTrendsCollectorJob>(opts => opts
+        .WithIdentity(googleTrendsJobKey).StoreDurably());
     q.AddTrigger(opts => opts
         .ForJob(googleTrendsJobKey)
-        .WithIdentity("GoogleTrendsTrigger")
-        .WithCronSchedule("0 0 */2 * * ?")
-        .StartAt(DateBuilder.FutureDate(20, IntervalUnit.Second)));
+        .WithIdentity("GoogleTrendsStartupTrigger")
+        .StartAt(DateBuilder.FutureDate(120, IntervalUnit.Second)));
+    q.AddTrigger(opts => opts
+        .ForJob(googleTrendsJobKey)
+        .WithIdentity("GoogleTrendsRecurringTrigger")
+        .WithCronSchedule("0 0 */2 * * ?"));
 
-    // Morning briefing — 04:00 UTC = 06:00 SAST daily
+    // Reddit — hourly (no startup trigger — blocked from VPS anyway)
+    var redditJobKey = new JobKey("RedditCollectorJob");
+    q.AddJob<RedditCollectorJob>(opts => opts.WithIdentity(redditJobKey));
+    q.AddTrigger(opts => opts
+        .ForJob(redditJobKey)
+        .WithIdentity("RedditCollectorTrigger")
+        .WithCronSchedule("0 0 * * * ?"));
+
+    // RSS News — every hour at :15
+    var newsJobKey = new JobKey("NewsCollectorJob");
+    q.AddJob<NewsCollectorJob>(opts => opts.WithIdentity(newsJobKey));
+    q.AddTrigger(opts => opts
+        .ForJob(newsJobKey)
+        .WithIdentity("NewsCollectorTrigger")
+        .WithCronSchedule("0 15 * * * ?"));
+
+    // Volume — every 4 hours (kept for fallback)
+    var volumeJobKey = new JobKey("VolumeCollectorJob");
+    q.AddJob<VolumeCollectorJob>(opts => opts.WithIdentity(volumeJobKey));
+    q.AddTrigger(opts => opts
+        .ForJob(volumeJobKey)
+        .WithIdentity("VolumeCollectorTrigger")
+        .WithCronSchedule("0 0 */4 * * ?"));
+
+    // Morning briefing — 04:00 UTC = 06:00 SAST
     var morningBriefingJobKey = new JobKey("MorningBriefingJob");
     q.AddJob<MorningBriefingJob>(opts => opts.WithIdentity(morningBriefingJobKey));
     q.AddTrigger(opts => opts
