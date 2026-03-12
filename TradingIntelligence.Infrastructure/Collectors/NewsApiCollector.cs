@@ -81,11 +81,14 @@ public class NewsApiCollector
         // Search for financial market news
         var queries = new[]
         {
-            "stock market earnings",
-            "nasdaq nyse earnings beat miss",
-            "stock upgrade downgrade analyst",
-            "merger acquisition deal",
-            "FDA approval rejection"
+            "NVDA nvidia earnings",
+            "TSLA tesla stock",
+            "AAPL apple earnings",
+            "META earnings revenue",
+            "stock market earnings beat",
+            "merger acquisition deal nasdaq",
+            "FDA approval stock",
+            "analyst upgrade downgrade price target"
         };
 
         foreach (var query in queries)
@@ -108,6 +111,13 @@ public class NewsApiCollector
 
                     var fullText = $"{article.Title} {article.Description}";
                     var tickers = TickerExtractor.Extract(fullText);
+                    if (!tickers.Any())
+                    {
+                        _logger.LogDebug("No tickers found in: {Title}", article.Title);
+                        continue;
+                    }
+                    _logger.LogInformation("Tickers {Tickers} found in: {Title}",
+                        string.Join(",", tickers), article.Title);
                     if (!tickers.Any()) continue;
 
                     // Dedup by URL hash

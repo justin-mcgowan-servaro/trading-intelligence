@@ -38,10 +38,14 @@ public class GoogleTrendsCollector
         var db = _redis.GetDatabase();
         var pub = _redis.GetSubscriber();
         int totalPublished = 0;
-
+        bool isFirst = true;
         foreach (var ticker in WatchedTickers)
         {
             if (cancellationToken.IsCancellationRequested) break;
+
+            if (!isFirst)
+                await Task.Delay(13000, cancellationToken);
+            isFirst = false;
 
             try
             {
