@@ -138,30 +138,74 @@ public class RedditCollector
             totalPublished);
     }
 
+    //private async Task<List<RedditPost>> FetchPostsAsync(
+    //    string subreddit,
+    //    CancellationToken cancellationToken)
+    //{
+    //    var posts = new List<RedditPost>();
+
+    //    // Fetch both hot and new to maximise coverage
+    //    foreach (var sort in new[] { "hot", "new" })
+    //    {
+    //        var request = new HttpRequestMessage(
+    //            HttpMethod.Get,
+    //            $"https://oauth.reddit.com/r/{subreddit}/{sort}?limit=50");
+
+    //        request.Headers.Authorization =
+    //            new AuthenticationHeaderValue("Bearer", _accessToken);
+    //        request.Headers.Add("User-Agent",
+    //            _config["Reddit:UserAgent"] ?? "TradingIntelligence/1.0");
+
+    //        var response = await _httpClient.SendAsync(request, cancellationToken);
+
+    //        if (!response.IsSuccessStatusCode)
+    //        {
+    //            _logger.LogWarning(
+    //                "Reddit API returned {Status} for r/{Sub}/{Sort}",
+    //                response.StatusCode, subreddit, sort);
+    //            continue;
+    //        }
+
+    //        var json = await response.Content.ReadAsStringAsync(cancellationToken);
+    //        var listing = JsonSerializer.Deserialize<RedditListing>(json);
+
+    //        var fetchedPosts = listing?.Data?.Children?
+    //            .Where(c => c.Data != null)
+    //            .Select(c => c.Data!)
+    //            .ToList() ?? new List<RedditPost>();
+
+    //        posts.AddRange(fetchedPosts);
+    //    }
+
+    //    // Deduplicate by post ID (hot and new may overlap)
+    //    return posts
+    //        .GroupBy(p => p.Id)
+    //        .Select(g => g.First())
+    //        .ToList();
+    //}
     private async Task<List<RedditPost>> FetchPostsAsync(
-        string subreddit,
-        CancellationToken cancellationToken)
+    string subreddit,
+    CancellationToken cancellationToken)
     {
         var posts = new List<RedditPost>();
 
-        // Fetch both hot and new to maximise coverage
         foreach (var sort in new[] { "hot", "new" })
         {
+            // Public JSON endpoint — no auth required
             var request = new HttpRequestMessage(
                 HttpMethod.Get,
-                $"https://oauth.reddit.com/r/{subreddit}/{sort}?limit=50");
+                $"https://www.reddit.com/r/{subreddit}/{sort}.json?limit=50");
 
-            request.Headers.Authorization =
-                new AuthenticationHeaderValue("Bearer", _accessToken);
+            // Reddit requires a descriptive User-Agent — without it requests get blocked
             request.Headers.Add("User-Agent",
-                _config["Reddit:UserAgent"] ?? "TradingIntelligence/1.0");
+                "TradingIntelligence/1.0 (personal research tool; contact: your@email.com)");
 
             var response = await _httpClient.SendAsync(request, cancellationToken);
 
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning(
-                    "Reddit API returned {Status} for r/{Sub}/{Sort}",
+                    "Reddit public feed returned {Status} for r/{Sub}/{Sort}",
                     response.StatusCode, subreddit, sort);
                 continue;
             }
@@ -175,61 +219,67 @@ public class RedditCollector
                 .ToList() ?? new List<RedditPost>();
 
             posts.AddRange(fetchedPosts);
+
+            // Public endpoint rate limit — 1 request per second
+            await Task.Delay(1100, cancellationToken);
         }
 
-        // Deduplicate by post ID (hot and new may overlap)
         return posts
             .GroupBy(p => p.Id)
             .Select(g => g.First())
             .ToList();
     }
 
-    private async Task EnsureTokenAsync(CancellationToken cancellationToken)
-    {
-        // Refresh token if expired or not set
-        if (!string.IsNullOrEmpty(_accessToken) &&
-            DateTime.UtcNow < _tokenExpiry.AddMinutes(-5))
-            return;
+    // No-op — public endpoint needs no token
+    private Task EnsureTokenAsync(CancellationToken cancellationToken)
+        => Task.CompletedTask;
 
-        var clientId = _config["Reddit:ClientId"]
-            ?? throw new InvalidOperationException("Reddit:ClientId not configured");
-        var clientSecret = _config["Reddit:ClientSecret"]
-            ?? throw new InvalidOperationException("Reddit:ClientSecret not configured");
-        var username = _config["Reddit:Username"]
-            ?? throw new InvalidOperationException("Reddit:Username not configured");
-        var password = _config["Reddit:Password"]
-            ?? throw new InvalidOperationException("Reddit:Password not configured");
-        var userAgent = _config["Reddit:UserAgent"] ?? "TradingIntelligence/1.0";
+    //private async Task EnsureTokenAsync(CancellationToken cancellationToken)
+    //{
+    //    // Refresh token if expired or not set
+    //    if (!string.IsNullOrEmpty(_accessToken) &&
+    //        DateTime.UtcNow < _tokenExpiry.AddMinutes(-5))
+    //        return;
 
-        var credentials = Convert.ToBase64String(
-            Encoding.UTF8.GetBytes($"{clientId}:{clientSecret}"));
+    //    var clientId = _config["Reddit:ClientId"]
+    //        ?? throw new InvalidOperationException("Reddit:ClientId not configured");
+    //    var clientSecret = _config["Reddit:ClientSecret"]
+    //        ?? throw new InvalidOperationException("Reddit:ClientSecret not configured");
+    //    var username = _config["Reddit:Username"]
+    //        ?? throw new InvalidOperationException("Reddit:Username not configured");
+    //    var password = _config["Reddit:Password"]
+    //        ?? throw new InvalidOperationException("Reddit:Password not configured");
+    //    var userAgent = _config["Reddit:UserAgent"] ?? "TradingIntelligence/1.0";
 
-        var tokenRequest = new HttpRequestMessage(
-            HttpMethod.Post,
-            "https://www.reddit.com/api/v1/access_token");
+    //    var credentials = Convert.ToBase64String(
+    //        Encoding.UTF8.GetBytes($"{clientId}:{clientSecret}"));
 
-        tokenRequest.Headers.Authorization =
-            new AuthenticationHeaderValue("Basic", credentials);
-        tokenRequest.Headers.Add("User-Agent", userAgent);
+    //    var tokenRequest = new HttpRequestMessage(
+    //        HttpMethod.Post,
+    //        "https://www.reddit.com/api/v1/access_token");
 
-        tokenRequest.Content = new FormUrlEncodedContent(new[]
-        {
-            new KeyValuePair<string, string>("grant_type", "password"),
-            new KeyValuePair<string, string>("username", username),
-            new KeyValuePair<string, string>("password", password),
-        });
+    //    tokenRequest.Headers.Authorization =
+    //        new AuthenticationHeaderValue("Basic", credentials);
+    //    tokenRequest.Headers.Add("User-Agent", userAgent);
 
-        var response = await _httpClient.SendAsync(tokenRequest, cancellationToken);
-        response.EnsureSuccessStatusCode();
+    //    tokenRequest.Content = new FormUrlEncodedContent(new[]
+    //    {
+    //        new KeyValuePair<string, string>("grant_type", "password"),
+    //        new KeyValuePair<string, string>("username", username),
+    //        new KeyValuePair<string, string>("password", password),
+    //    });
 
-        var json = await response.Content.ReadAsStringAsync(cancellationToken);
-        var token = JsonSerializer.Deserialize<RedditTokenResponse>(json)
-            ?? throw new InvalidOperationException("Failed to deserialise Reddit token response");
+    //    var response = await _httpClient.SendAsync(tokenRequest, cancellationToken);
+    //    response.EnsureSuccessStatusCode();
 
-        _accessToken = token.AccessToken;
-        _tokenExpiry = DateTime.UtcNow.AddSeconds(token.ExpiresIn);
+    //    var json = await response.Content.ReadAsStringAsync(cancellationToken);
+    //    var token = JsonSerializer.Deserialize<RedditTokenResponse>(json)
+    //        ?? throw new InvalidOperationException("Failed to deserialise Reddit token response");
 
-        _logger.LogInformation("Reddit OAuth token obtained — expires at {Expiry}",
-            _tokenExpiry.ToString("HH:mm:ss"));
-    }
+    //    _accessToken = token.AccessToken;
+    //    _tokenExpiry = DateTime.UtcNow.AddSeconds(token.ExpiresIn);
+
+    //    _logger.LogInformation("Reddit OAuth token obtained — expires at {Expiry}",
+    //        _tokenExpiry.ToString("HH:mm:ss"));
+    //}
 }
