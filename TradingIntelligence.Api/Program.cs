@@ -7,11 +7,6 @@ using TradingIntelligence.Infrastructure.Data;
 using TradingIntelligence.Infrastructure.Helpers;
 using TradingIntelligence.Infrastructure.Jobs;
 using TradingIntelligence.Infrastructure.Services;
-using TradingIntelligence.Infrastructure.Jobs;
-using Quartz;
-using TradingIntelligence.Infrastructure.Collectors;
-using TradingIntelligence.Infrastructure.Jobs;
-using TradingIntelligence.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,47 +22,48 @@ builder.Host.UseSerilog();
 
 // ── Database ─────────────────────────────────────────────────────────────────
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        b => b.MigrationsAssembly("TradingIntelligence.Infrastructure")));
 
-//builder.Services.AddDbContext<AppDbContext>(options =>
-//    options.UseNpgsql(
-//        builder.Configuration.GetConnectionString("DefaultConnection"),
-//        b => b.MigrationsAssembly("TradingIntelligence.Infrastructure")));
-
-
-// ── Redis ────────────────────────────────────────────────────────────────────
+// ── Redis ─────────────────────────────────────────────────────────────────────
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
     ConnectionMultiplexer.Connect(
         builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379"));
 
-// ── HttpClient for Reddit ────────────────────────────────────────────────────
+// ── HttpClients ───────────────────────────────────────────────────────────────
 builder.Services.AddHttpClient("Reddit");
+builder.Services.AddHttpClient("StockTwits");
+builder.Services.AddHttpClient("News");
+builder.Services.AddHttpClient("Volume");
 
-// ── Collectors ───────────────────────────────────────────────────────────────
+// ── Collectors ────────────────────────────────────────────────────────────────
 builder.Services.AddScoped<RedditCollector>();
 builder.Services.AddScoped<StockTwitsCollector>();
 builder.Services.AddScoped<NewsCollector>();
 builder.Services.AddScoped<VolumeCollector>();
-// ── Background Services ──────────────────────────────────────────────────────
 
+// ── Background Services ───────────────────────────────────────────────────────
 builder.Services.AddSingleton<SignalAggregatorService>();
 builder.Services.AddHostedService(sp =>
     sp.GetRequiredService<SignalAggregatorService>());
 
-//builder.Services.AddSingleton<MomentumScoringService>();
-//builder.Services.AddHostedService(sp =>
-//    sp.GetRequiredService<MomentumScoringService>());
-builder.Services.AddSingleton<MomentumScoringService>(sp => new MomentumScoringService(
-    sp.GetRequiredService<IConnectionMultiplexer>(),
-    sp.GetRequiredService<IServiceScopeFactory>(),
-    sp.GetRequiredService<SignalAggregatorService>(),
-    sp.GetRequiredService<IConfiguration>(),
-    sp.GetRequiredService<ILogger<MomentumScoringService>>()));
+builder.Services.AddSingleton<MomentumScoringService>(sp =>
+    new MomentumScoringService(
+        sp.GetRequiredService<IConnectionMultiplexer>(),
+        sp.GetRequiredService<IServiceScopeFactory>(),
+        sp.GetRequiredService<SignalAggregatorService>(),
+        sp.GetRequiredService<IConfiguration>(),
+        sp.GetRequiredService<ILogger<MomentumScoringService>>()));
 
-// ── Quartz Scheduler ─────────────────────────────────────────────────────────
+// ← This is the line that was missing — registers it as a hosted service
+builder.Services.AddHostedService(sp =>
+    sp.GetRequiredService<MomentumScoringService>());
+
+// ── Quartz Scheduler ──────────────────────────────────────────────────────────
 builder.Services.AddQuartz(q =>
 {
-    // Reddit collector — hourly (public endpoint rate limit)
+    // Reddit collector — hourly
     var redditJobKey = new JobKey("RedditCollectorJob");
     q.AddJob<RedditCollectorJob>(opts => opts.WithIdentity(redditJobKey));
     q.AddTrigger(opts => opts
@@ -80,12 +76,12 @@ builder.Services.AddQuartz(q =>
     var stockTwitsJobKey = new JobKey("StockTwitsCollectorJob");
     q.AddJob<StockTwitsCollectorJob>(opts => opts.WithIdentity(stockTwitsJobKey));
     q.AddTrigger(opts => opts
-    .ForJob(stockTwitsJobKey)
-    .WithIdentity("StockTwitsTrigger")
-    .WithCronSchedule("0 0/30 * * * ?")
-    .StartAt(DateBuilder.FutureDate(30, IntervalUnit.Second)));
+        .ForJob(stockTwitsJobKey)
+        .WithIdentity("StockTwitsTrigger")
+        .WithCronSchedule("0 0/30 * * * ?")
+        .StartAt(DateBuilder.FutureDate(30, IntervalUnit.Second)));
 
-    // News collector — every 60 minutes offset by 15 mins
+    // News collector — every hour at :15
     var newsJobKey = new JobKey("NewsCollectorJob");
     q.AddJob<NewsCollectorJob>(opts => opts.WithIdentity(newsJobKey));
     q.AddTrigger(opts => opts
@@ -94,7 +90,7 @@ builder.Services.AddQuartz(q =>
         .WithCronSchedule("0 15 * * * ?")
         .StartAt(DateBuilder.FutureDate(45, IntervalUnit.Second)));
 
-    // Volume collector — every 4 hours (Alpha Vantage free tier limit)
+    // Volume collector — every 4 hours
     var volumeJobKey = new JobKey("VolumeCollectorJob");
     q.AddJob<VolumeCollectorJob>(opts => opts.WithIdentity(volumeJobKey));
     q.AddTrigger(opts => opts
@@ -106,12 +102,12 @@ builder.Services.AddQuartz(q =>
 
 builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
 
-// ── Controllers + Swagger ────────────────────────────────────────────────────
+// ── Controllers + Swagger ─────────────────────────────────────────────────────
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// ── CORS ─────────────────────────────────────────────────────────────────────
+// ── CORS ──────────────────────────────────────────────────────────────────────
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngular", policy =>
@@ -126,14 +122,13 @@ builder.Services.AddSignalR();
 
 var app = builder.Build();
 
-// ── Auto-migrate + seed ticker list on startup ───────────────────────────────
+// ── Auto-migrate + load tickers ───────────────────────────────────────────────
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.MigrateAsync();
     Log.Information("Database migration applied");
 
-    // Load valid tickers into the extractor
     var tickers = await db.Tickers
         .Where(t => t.IsActive)
         .Select(t => t.Symbol)
