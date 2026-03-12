@@ -79,7 +79,7 @@ builder.Services.AddQuartz(q =>
         .ForJob(stockTwitsJobKey)
         .WithIdentity("StockTwitsTrigger")
         //.WithCronSchedule("0 0/30 * * * ?")
-        .WithCronSchedule("0 17 13 * * ?")
+        .WithCronSchedule("0 23 13 * * ?")
         .StartAt(DateBuilder.FutureDate(30, IntervalUnit.Second)));
 
     // News collector — every hour at :15
