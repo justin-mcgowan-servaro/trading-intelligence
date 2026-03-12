@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("TradingIntelligence.Infrastructure")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f79b376ee4e8ac6cecbe9b0f71543f50a07a4cf3")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+bd2cfe963510e100f1ad267aa4b8c9f6411ac55f")]
 [assembly: System.Reflection.AssemblyProductAttribute("TradingIntelligence.Infrastructure")]
 [assembly: System.Reflection.AssemblyTitleAttribute("TradingIntelligence.Infrastructure")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
