@@ -9,3 +9,4 @@ C:\Development\Projects\TradingIntelligence\TradingIntelligence.Core\obj\Debug\n
 C:\Development\Projects\TradingIntelligence\TradingIntelligence.Core\obj\Debug\net10.0\refint\TradingIntelligence.Core.dll
 C:\Development\Projects\TradingIntelligence\TradingIntelligence.Core\obj\Debug\net10.0\TradingIntelligence.Core.pdb
 C:\Development\Projects\TradingIntelligence\TradingIntelligence.Core\obj\Debug\net10.0\ref\TradingIntelligence.Core.dll
+C:\Development\Projects\TradingIntelligence\TradingIntelligence.Core\obj\Debug\net10.0\TradingIntelligence.Core.sourcelink.json

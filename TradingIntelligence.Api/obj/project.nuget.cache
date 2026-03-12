@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "xZwWekLkErM=",
+  "dgSpecHash": "xLJ8wcSNBWk=",
   "success": true,
   "projectFilePath": "C:\\Development\\Projects\\TradingIntelligence\\TradingIntelligence.Api\\TradingIntelligence.Api.csproj",
   "expectedPackageFiles": [
@@ -62,7 +62,10 @@
     "C:\\Users\\mcgow\\.nuget\\packages\\system.composition.typedparts\\9.0.0\\system.composition.typedparts.9.0.0.nupkg.sha512",
     "C:\\Users\\mcgow\\.nuget\\packages\\system.identitymodel.tokens.jwt\\8.0.1\\system.identitymodel.tokens.jwt.8.0.1.nupkg.sha512",
     "C:\\Users\\mcgow\\.nuget\\packages\\system.io.hashing\\10.0.2\\system.io.hashing.10.0.2.nupkg.sha512",
-    "C:\\Users\\mcgow\\.nuget\\packages\\system.memory.data\\10.0.1\\system.memory.data.10.0.1.nupkg.sha512"
+    "C:\\Users\\mcgow\\.nuget\\packages\\system.memory.data\\10.0.1\\system.memory.data.10.0.1.nupkg.sha512",
+    "C:\\Users\\mcgow\\.nuget\\packages\\system.servicemodel.http\\10.0.652802\\system.servicemodel.http.10.0.652802.nupkg.sha512",
+    "C:\\Users\\mcgow\\.nuget\\packages\\system.servicemodel.primitives\\10.0.652802\\system.servicemodel.primitives.10.0.652802.nupkg.sha512",
+    "C:\\Users\\mcgow\\.nuget\\packages\\system.servicemodel.syndication\\10.0.4\\system.servicemodel.syndication.10.0.4.nupkg.sha512"
   ],
   "logs": []
 }

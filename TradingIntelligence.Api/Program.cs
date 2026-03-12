@@ -9,6 +9,9 @@ using TradingIntelligence.Infrastructure.Jobs;
 using TradingIntelligence.Infrastructure.Services;
 using TradingIntelligence.Infrastructure.Jobs;
 using Quartz;
+using TradingIntelligence.Infrastructure.Collectors;
+using TradingIntelligence.Infrastructure.Jobs;
+using TradingIntelligence.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -43,9 +46,23 @@ builder.Services.AddHttpClient("Reddit");
 // ── Collectors ───────────────────────────────────────────────────────────────
 builder.Services.AddScoped<RedditCollector>();
 builder.Services.AddScoped<StockTwitsCollector>();
+builder.Services.AddScoped<NewsCollector>();
+builder.Services.AddScoped<VolumeCollector>();
 // ── Background Services ──────────────────────────────────────────────────────
+
 builder.Services.AddSingleton<SignalAggregatorService>();
-builder.Services.AddHostedService(sp => sp.GetRequiredService<SignalAggregatorService>());
+builder.Services.AddHostedService(sp =>
+    sp.GetRequiredService<SignalAggregatorService>());
+
+//builder.Services.AddSingleton<MomentumScoringService>();
+//builder.Services.AddHostedService(sp =>
+//    sp.GetRequiredService<MomentumScoringService>());
+builder.Services.AddSingleton<MomentumScoringService>(sp => new MomentumScoringService(
+    sp.GetRequiredService<IConnectionMultiplexer>(),
+    sp.GetRequiredService<IServiceScopeFactory>(),
+    sp.GetRequiredService<SignalAggregatorService>(),
+    sp.GetRequiredService<IConfiguration>(),
+    sp.GetRequiredService<ILogger<MomentumScoringService>>()));
 
 // ── Quartz Scheduler ─────────────────────────────────────────────────────────
 builder.Services.AddQuartz(q =>
@@ -67,6 +84,24 @@ builder.Services.AddQuartz(q =>
     .WithIdentity("StockTwitsTrigger")
     .WithCronSchedule("0 0/30 * * * ?")
     .StartAt(DateBuilder.FutureDate(30, IntervalUnit.Second)));
+
+    // News collector — every 60 minutes offset by 15 mins
+    var newsJobKey = new JobKey("NewsCollectorJob");
+    q.AddJob<NewsCollectorJob>(opts => opts.WithIdentity(newsJobKey));
+    q.AddTrigger(opts => opts
+        .ForJob(newsJobKey)
+        .WithIdentity("NewsCollectorTrigger")
+        .WithCronSchedule("0 15 * * * ?")
+        .StartAt(DateBuilder.FutureDate(45, IntervalUnit.Second)));
+
+    // Volume collector — every 4 hours (Alpha Vantage free tier limit)
+    var volumeJobKey = new JobKey("VolumeCollectorJob");
+    q.AddJob<VolumeCollectorJob>(opts => opts.WithIdentity(volumeJobKey));
+    q.AddTrigger(opts => opts
+        .ForJob(volumeJobKey)
+        .WithIdentity("VolumeCollectorTrigger")
+        .WithCronSchedule("0 0 */4 * * ?")
+        .StartAt(DateBuilder.FutureDate(60, IntervalUnit.Second)));
 });
 
 builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);

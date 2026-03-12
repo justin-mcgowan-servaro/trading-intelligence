@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "GWhKlzG6P2E=",
+  "dgSpecHash": "7ffC01avPyY=",
   "success": true,
   "projectFilePath": "C:\\Development\\Projects\\TradingIntelligence\\TradingIntelligence.Infrastructure\\TradingIntelligence.Infrastructure.csproj",
   "expectedPackageFiles": [
@@ -33,6 +33,7 @@
     "C:\\Users\\mcgow\\.nuget\\packages\\microsoft.extensions.http\\10.0.4\\microsoft.extensions.http.10.0.4.nupkg.sha512",
     "C:\\Users\\mcgow\\.nuget\\packages\\microsoft.extensions.logging\\10.0.4\\microsoft.extensions.logging.10.0.4.nupkg.sha512",
     "C:\\Users\\mcgow\\.nuget\\packages\\microsoft.extensions.logging.abstractions\\10.0.4\\microsoft.extensions.logging.abstractions.10.0.4.nupkg.sha512",
+    "C:\\Users\\mcgow\\.nuget\\packages\\microsoft.extensions.objectpool\\10.0.0\\microsoft.extensions.objectpool.10.0.0.nupkg.sha512",
     "C:\\Users\\mcgow\\.nuget\\packages\\microsoft.extensions.options\\10.0.4\\microsoft.extensions.options.10.0.4.nupkg.sha512",
     "C:\\Users\\mcgow\\.nuget\\packages\\microsoft.extensions.options.configurationextensions\\10.0.4\\microsoft.extensions.options.configurationextensions.10.0.4.nupkg.sha512",
     "C:\\Users\\mcgow\\.nuget\\packages\\microsoft.extensions.primitives\\10.0.4\\microsoft.extensions.primitives.10.0.4.nupkg.sha512",
@@ -65,7 +66,12 @@
     "C:\\Users\\mcgow\\.nuget\\packages\\system.composition.runtime\\9.0.0\\system.composition.runtime.9.0.0.nupkg.sha512",
     "C:\\Users\\mcgow\\.nuget\\packages\\system.composition.typedparts\\9.0.0\\system.composition.typedparts.9.0.0.nupkg.sha512",
     "C:\\Users\\mcgow\\.nuget\\packages\\system.io.hashing\\10.0.2\\system.io.hashing.10.0.2.nupkg.sha512",
-    "C:\\Users\\mcgow\\.nuget\\packages\\system.memory.data\\10.0.1\\system.memory.data.10.0.1.nupkg.sha512"
+    "C:\\Users\\mcgow\\.nuget\\packages\\system.memory.data\\10.0.1\\system.memory.data.10.0.1.nupkg.sha512",
+    "C:\\Users\\mcgow\\.nuget\\packages\\system.security.cryptography.pkcs\\10.0.0\\system.security.cryptography.pkcs.10.0.0.nupkg.sha512",
+    "C:\\Users\\mcgow\\.nuget\\packages\\system.security.cryptography.xml\\10.0.0\\system.security.cryptography.xml.10.0.0.nupkg.sha512",
+    "C:\\Users\\mcgow\\.nuget\\packages\\system.servicemodel.http\\10.0.652802\\system.servicemodel.http.10.0.652802.nupkg.sha512",
+    "C:\\Users\\mcgow\\.nuget\\packages\\system.servicemodel.primitives\\10.0.652802\\system.servicemodel.primitives.10.0.652802.nupkg.sha512",
+    "C:\\Users\\mcgow\\.nuget\\packages\\system.servicemodel.syndication\\10.0.4\\system.servicemodel.syndication.10.0.4.nupkg.sha512"
   ],
   "logs": []
 }

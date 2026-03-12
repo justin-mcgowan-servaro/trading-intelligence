@@ -444,6 +444,14 @@
             "StackExchange.Redis": {
               "target": "Package",
               "version": "[2.11.8, )"
+            },
+            "System.ServiceModel.Http": {
+              "target": "Package",
+              "version": "[10.0.652802, )"
+            },
+            "System.ServiceModel.Syndication": {
+              "target": "Package",
+              "version": "[10.0.4, )"
             }
           },
           "imports": [
