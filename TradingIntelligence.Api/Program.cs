@@ -1,15 +1,21 @@
 using Microsoft.EntityFrameworkCore;
+using Quartz;
 using StackExchange.Redis;
 using Serilog;
+using TradingIntelligence.Infrastructure.Collectors;
 using TradingIntelligence.Infrastructure.Data;
+using TradingIntelligence.Infrastructure.Helpers;
+using TradingIntelligence.Infrastructure.Jobs;
+using TradingIntelligence.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ── Serilog ─────────────────────────────────────────────────────────────────
+// ── Serilog ──────────────────────────────────────────────────────────────────
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
     .Enrich.FromLogContext()
-    .WriteTo.Console()
+    .WriteTo.Console(outputTemplate:
+        "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
     .CreateLogger();
 
 builder.Host.UseSerilog();
@@ -23,17 +29,45 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 //        builder.Configuration.GetConnectionString("DefaultConnection"),
 //        b => b.MigrationsAssembly("TradingIntelligence.Infrastructure")));
 
+
 // ── Redis ────────────────────────────────────────────────────────────────────
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
     ConnectionMultiplexer.Connect(
         builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379"));
+
+// ── HttpClient for Reddit ────────────────────────────────────────────────────
+builder.Services.AddHttpClient("Reddit");
+
+// ── Collectors ───────────────────────────────────────────────────────────────
+builder.Services.AddScoped<RedditCollector>();
+
+// ── Background Services ──────────────────────────────────────────────────────
+builder.Services.AddSingleton<SignalAggregatorService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<SignalAggregatorService>());
+
+// ── Quartz Scheduler ─────────────────────────────────────────────────────────
+builder.Services.AddQuartz(q =>
+{
+    // Reddit collector — runs every 30 minutes
+    var redditJobKey = new JobKey("RedditCollectorJob");
+
+    q.AddJob<RedditCollectorJob>(opts => opts.WithIdentity(redditJobKey));
+
+    q.AddTrigger(opts => opts
+        .ForJob(redditJobKey)
+        .WithIdentity("RedditCollectorTrigger")
+        .WithCronSchedule("0 0/30 * * * ?")  // Every 30 minutes
+        .StartNow());
+});
+
+builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
 
 // ── Controllers + Swagger ────────────────────────────────────────────────────
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// ── CORS (for Angular dev) ───────────────────────────────────────────────────
+// ── CORS ─────────────────────────────────────────────────────────────────────
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngular", policy =>
@@ -43,20 +77,29 @@ builder.Services.AddCors(options =>
               .AllowCredentials());
 });
 
-// ── SignalR ──────────────────────────────────────────────────────────────────
+// ── SignalR ───────────────────────────────────────────────────────────────────
 builder.Services.AddSignalR();
 
 var app = builder.Build();
 
-// ── Auto-migrate on startup ──────────────────────────────────────────────────
+// ── Auto-migrate + seed ticker list on startup ───────────────────────────────
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
-    Log.Information("Database migration applied successfully");
+    await db.Database.MigrateAsync();
+    Log.Information("Database migration applied");
+
+    // Load valid tickers into the extractor
+    var tickers = await db.Tickers
+        .Where(t => t.IsActive)
+        .Select(t => t.Symbol)
+        .ToListAsync();
+
+    TickerExtractor.LoadValidTickers(tickers);
+    Log.Information("Loaded {Count} valid tickers into extractor", tickers.Count);
 }
 
-// ── Middleware ───────────────────────────────────────────────────────────────
+// ── Middleware ────────────────────────────────────────────────────────────────
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -68,16 +111,15 @@ app.UseSerilogRequestLogging();
 app.UseAuthorization();
 app.MapControllers();
 
-// ── Health endpoint ──────────────────────────────────────────────────────────
-app.MapGet("/health", () => Results.Ok(new
+// ── Health endpoint ───────────────────────────────────────────────────────────
+app.MapGet("/health", (SignalAggregatorService aggregator) => Results.Ok(new
 {
     status = "healthy",
     timestamp = DateTime.UtcNow,
-    timestampSast = TimeZoneInfo.ConvertTimeFromUtc(
-        DateTime.UtcNow,
-        TimeZoneInfo.FindSystemTimeZoneById("South Africa Standard Time"))
-        .ToString("yyyy-MM-dd HH:mm:ss SAST"),
-    session = TradingIntelligence.Infrastructure.Helpers.MarketSessionHelper.CurrentSession().ToString(),
+    timestampSast = MarketSessionHelper.ToSast(DateTime.UtcNow),
+    session = MarketSessionHelper.SessionDisplayName(
+        MarketSessionHelper.CurrentSession()),
+    signalBuffer = aggregator.GetBufferSummary(),
     version = "1.0.0"
 }));
 

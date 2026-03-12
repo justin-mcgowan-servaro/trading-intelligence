@@ -2,7 +2,6 @@ version: '3.9'
 
 services:
 
-  # ── PostgreSQL ──────────────────────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
     restart: always
@@ -22,7 +21,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # ── Redis ────────────────────────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
     restart: always
@@ -38,6 +36,26 @@ services:
       interval: 10s
       timeout: 3s
       retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: TradingIntelligence.Api/Dockerfile
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=trading_intelligence;Username=trading_user;Password=${DB_PASSWORD}
+      - Redis__ConnectionString=redis:6379
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - trading-net
 
 networks:
   trading-net:
