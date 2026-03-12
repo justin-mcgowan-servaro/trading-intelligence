@@ -57,7 +57,8 @@ builder.Services.AddQuartz(q =>
         .ForJob(redditJobKey)
         .WithIdentity("RedditCollectorTrigger")
         //.WithCronSchedule("0 0/30 * * * ?")  // Every 30 minutes
-        .WithCronSchedule("0 0 * * * ?")  // Every hour on the hour
+        //.WithCronSchedule("0 0 * * * ?")  // Every hour on the hour
+        .WithCronSchedule("0 57 10 * * ?")
         .StartNow());
 });
 
