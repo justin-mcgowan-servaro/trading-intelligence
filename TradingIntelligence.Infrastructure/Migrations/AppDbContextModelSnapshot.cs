@@ -168,7 +168,7 @@ namespace TradingIntelligence.Infrastructure.Migrations
                         {
                             Id = 1,
                             CompanyName = "Apple Inc",
-                            CreatedAt = new DateTime(2026, 3, 11, 21, 3, 27, 876, DateTimeKind.Utc).AddTicks(3533),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Exchange = "NASDAQ",
                             IsActive = true,
                             Symbol = "AAPL"
@@ -177,7 +177,7 @@ namespace TradingIntelligence.Infrastructure.Migrations
                         {
                             Id = 2,
                             CompanyName = "NVIDIA Corporation",
-                            CreatedAt = new DateTime(2026, 3, 11, 21, 3, 27, 876, DateTimeKind.Utc).AddTicks(5633),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Exchange = "NASDAQ",
                             IsActive = true,
                             Symbol = "NVDA"
@@ -186,7 +186,7 @@ namespace TradingIntelligence.Infrastructure.Migrations
                         {
                             Id = 3,
                             CompanyName = "Microsoft Corporation",
-                            CreatedAt = new DateTime(2026, 3, 11, 21, 3, 27, 876, DateTimeKind.Utc).AddTicks(5641),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Exchange = "NASDAQ",
                             IsActive = true,
                             Symbol = "MSFT"
@@ -195,7 +195,7 @@ namespace TradingIntelligence.Infrastructure.Migrations
                         {
                             Id = 4,
                             CompanyName = "Tesla Inc",
-                            CreatedAt = new DateTime(2026, 3, 11, 21, 3, 27, 876, DateTimeKind.Utc).AddTicks(5642),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Exchange = "NASDAQ",
                             IsActive = true,
                             Symbol = "TSLA"
@@ -204,7 +204,7 @@ namespace TradingIntelligence.Infrastructure.Migrations
                         {
                             Id = 5,
                             CompanyName = "Amazon.com Inc",
-                            CreatedAt = new DateTime(2026, 3, 11, 21, 3, 27, 876, DateTimeKind.Utc).AddTicks(5643),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Exchange = "NASDAQ",
                             IsActive = true,
                             Symbol = "AMZN"
@@ -213,7 +213,7 @@ namespace TradingIntelligence.Infrastructure.Migrations
                         {
                             Id = 6,
                             CompanyName = "Meta Platforms Inc",
-                            CreatedAt = new DateTime(2026, 3, 11, 21, 3, 27, 876, DateTimeKind.Utc).AddTicks(5644),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Exchange = "NASDAQ",
                             IsActive = true,
                             Symbol = "META"
@@ -222,7 +222,7 @@ namespace TradingIntelligence.Infrastructure.Migrations
                         {
                             Id = 7,
                             CompanyName = "Alphabet Inc",
-                            CreatedAt = new DateTime(2026, 3, 11, 21, 3, 27, 876, DateTimeKind.Utc).AddTicks(5646),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Exchange = "NASDAQ",
                             IsActive = true,
                             Symbol = "GOOGL"
@@ -231,7 +231,7 @@ namespace TradingIntelligence.Infrastructure.Migrations
                         {
                             Id = 8,
                             CompanyName = "Advanced Micro Devices",
-                            CreatedAt = new DateTime(2026, 3, 11, 21, 3, 27, 876, DateTimeKind.Utc).AddTicks(5648),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Exchange = "NASDAQ",
                             IsActive = true,
                             Symbol = "AMD"
@@ -240,7 +240,7 @@ namespace TradingIntelligence.Infrastructure.Migrations
                         {
                             Id = 9,
                             CompanyName = "SPDR S&P 500 ETF",
-                            CreatedAt = new DateTime(2026, 3, 11, 21, 3, 27, 876, DateTimeKind.Utc).AddTicks(5649),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Exchange = "NYSE",
                             IsActive = true,
                             Symbol = "SPY"
@@ -249,7 +249,7 @@ namespace TradingIntelligence.Infrastructure.Migrations
                         {
                             Id = 10,
                             CompanyName = "Invesco QQQ Trust",
-                            CreatedAt = new DateTime(2026, 3, 11, 21, 3, 27, 876, DateTimeKind.Utc).AddTicks(5650),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Exchange = "NASDAQ",
                             IsActive = true,
                             Symbol = "QQQ"

@@ -128,3 +128,4 @@ C:\Development\Projects\TradingIntelligence\TradingIntelligence.Tests\obj\Debug\
 C:\Development\Projects\TradingIntelligence\TradingIntelligence.Tests\obj\Debug\net10.0\TradingIntelligence.Tests.pdb
 C:\Development\Projects\TradingIntelligence\TradingIntelligence.Tests\obj\Debug\net10.0\TradingIntelligence.Tests.genruntimeconfig.cache
 C:\Development\Projects\TradingIntelligence\TradingIntelligence.Tests\obj\Debug\net10.0\ref\TradingIntelligence.Tests.dll
+C:\Development\Projects\TradingIntelligence\TradingIntelligence.Tests\obj\Debug\net10.0\TradingIntelligence.Tests.sourcelink.json

@@ -25,8 +25,10 @@ RUN dotnet publish TradingIntelligence.Api/TradingIntelligence.Api.csproj \
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
-# Install tzdata for SAST timezone support
-RUN apt-get update && apt-get install -y tzdata && rm -rf /var/lib/apt/lists/*
+# Install tzdata for SAST timezone + krb5 for Npgsql
+RUN apt-get update && \
+    apt-get install -y tzdata libgssapi-krb5-2 && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /app/publish .
 

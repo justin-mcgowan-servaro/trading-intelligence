@@ -15,3 +15,4 @@ C:\Development\Projects\TradingIntelligence\TradingIntelligence.Infrastructure\o
 C:\Development\Projects\TradingIntelligence\TradingIntelligence.Infrastructure\obj\Debug\net10.0\TradingIntelligence.Infrastructure.pdb
 C:\Development\Projects\TradingIntelligence\TradingIntelligence.Infrastructure\obj\Debug\net10.0\TradingIntelligence.Infrastructure.genruntimeconfig.cache
 C:\Development\Projects\TradingIntelligence\TradingIntelligence.Infrastructure\obj\Debug\net10.0\ref\TradingIntelligence.Infrastructure.dll
+C:\Development\Projects\TradingIntelligence\TradingIntelligence.Infrastructure\obj\Debug\net10.0\TradingIntelligence.Infrastructure.sourcelink.json
