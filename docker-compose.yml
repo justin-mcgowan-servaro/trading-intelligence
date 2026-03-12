@@ -41,6 +41,12 @@ services:
     environment:
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=trading_intelligence;Username=trading_user;Password=${DB_PASSWORD}
       - Redis__ConnectionString=redis:6379
+      - Jwt__SecretKey=${JWT_SECRET}
+      - Jwt__Issuer=https://servaro.co.za
+      - Jwt__Audience=https://servaro.co.za
+      - Jwt__ExpiryHours=24
+      - OpenAI__ApiKey=${OPENAI_API_KEY}
+      - AlphaVantage__ApiKey=${ALPHAVANTAGE_API_KEY}
     depends_on:
       postgres:
         condition: service_healthy
