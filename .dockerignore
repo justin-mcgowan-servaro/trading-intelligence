@@ -1,0 +1,11 @@
+**/.git
+**/.vs
+**/bin
+**/obj
+**/*.user
+**/node_modules
+frontend/node_modules
+frontend/dist
+**/.angular
+README.md
+.env

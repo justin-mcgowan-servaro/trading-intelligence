@@ -1,16 +1,16 @@
 ﻿# Build stage
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Copy solution and project files first for layer caching
-COPY TradingIntelligence.sln .
+COPY TradingIntelligence.slnx .
 COPY TradingIntelligence.Api/TradingIntelligence.Api.csproj TradingIntelligence.Api/
 COPY TradingIntelligence.Core/TradingIntelligence.Core.csproj TradingIntelligence.Core/
 COPY TradingIntelligence.Infrastructure/TradingIntelligence.Infrastructure.csproj TradingIntelligence.Infrastructure/
 COPY TradingIntelligence.Tests/TradingIntelligence.Tests.csproj TradingIntelligence.Tests/
 
 # Restore dependencies
-RUN dotnet restore
+RUN dotnet restore TradingIntelligence.slnx
 
 # Copy all source code
 COPY . .
@@ -22,10 +22,10 @@ RUN dotnet publish TradingIntelligence.Api/TradingIntelligence.Api.csproj \
     --no-restore
 
 # Runtime stage
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
-# Install tzdata for timezone support (SAST timezone)
+# Install tzdata for SAST timezone support
 RUN apt-get update && apt-get install -y tzdata && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /app/publish .
