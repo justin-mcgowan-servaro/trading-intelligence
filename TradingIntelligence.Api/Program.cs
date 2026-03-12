@@ -8,6 +8,7 @@ using TradingIntelligence.Infrastructure.Helpers;
 using TradingIntelligence.Infrastructure.Jobs;
 using TradingIntelligence.Infrastructure.Services;
 using TradingIntelligence.Infrastructure.Jobs;
+using Quartz;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -62,11 +63,10 @@ builder.Services.AddQuartz(q =>
     var stockTwitsJobKey = new JobKey("StockTwitsCollectorJob");
     q.AddJob<StockTwitsCollectorJob>(opts => opts.WithIdentity(stockTwitsJobKey));
     q.AddTrigger(opts => opts
-        .ForJob(stockTwitsJobKey)
-        .WithIdentity("StockTwitsTrigger")
-        //.WithCronSchedule("0 0/30 * * * ?")
-        .WithCronSchedule("0 24 11 * * ?")
-        .StartNow());   // ← StartNow fires immediately on startup
+    .ForJob(stockTwitsJobKey)
+    .WithIdentity("StockTwitsTrigger")
+    .WithCronSchedule("0 0/30 * * * ?")
+    .StartAt(DateBuilder.FutureDate(30, IntervalUnit.Second)));
 });
 
 builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
