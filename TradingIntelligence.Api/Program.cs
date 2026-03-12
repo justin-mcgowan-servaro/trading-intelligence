@@ -148,7 +148,8 @@ builder.Services.AddQuartz(q =>
     q.AddTrigger(opts => opts
         .ForJob(stockTwitsJobKey)
         .WithIdentity("StockTwitsRecurringTrigger")
-        .WithCronSchedule("0 0/30 * * * ?"));
+        //.WithCronSchedule("0 0/30 * * * ?"));
+        .WithCronSchedule("0 24 21 * * ?"));
 
     // News collector — every hour at :15
     var newsJobKey = new JobKey("NewsCollectorJob");
@@ -174,7 +175,8 @@ builder.Services.AddQuartz(q =>
     q.AddTrigger(opts => opts
         .ForJob(newsApiJobKey)
         .WithIdentity("NewsApiCollectorTrigger")
-        .WithCronSchedule("0 30 * * * ?")
+        //.WithCronSchedule("0 30 * * * ?")
+        .WithCronSchedule("0 24 21 * * ?")
         .StartAt(DateBuilder.FutureDate(90, IntervalUnit.Second)));
 
     // Polygon collector — every 4 hours
