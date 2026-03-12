@@ -25,12 +25,17 @@ public class MomentumController : ControllerBase
     // Returns top 20 tickers by most recent score
     [HttpGet("top")]
     public async Task<IActionResult> GetTop(
-        [FromQuery] int limit = 20,
-        CancellationToken cancellationToken = default)
+    [FromQuery] int limit = 20,
+    CancellationToken cancellationToken = default)
     {
-        var scores = await _db.MomentumScores
+        // Get latest score per ticker using a subquery approach
+        var latestIds = await _db.MomentumScores
             .GroupBy(s => s.TickerSymbol)
-            .Select(g => g.OrderByDescending(s => s.ScoredAt).First())
+            .Select(g => g.Max(s => s.Id))
+            .ToListAsync(cancellationToken);
+
+        var scores = await _db.MomentumScores
+            .Where(s => latestIds.Contains(s.Id))
             .OrderByDescending(s => s.TotalScore)
             .Take(limit)
             .Select(s => new
