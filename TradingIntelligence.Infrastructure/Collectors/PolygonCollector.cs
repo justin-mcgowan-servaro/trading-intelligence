@@ -115,7 +115,7 @@ public class PolygonCollector
                 }
 
                 // Small delay to respect rate limits
-                await Task.Delay(2000, cancellationToken);
+                await Task.Delay(13000, cancellationToken);
             }
             catch (Exception ex)
             {

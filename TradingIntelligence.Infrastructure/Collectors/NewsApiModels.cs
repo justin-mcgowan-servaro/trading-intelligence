@@ -1,13 +1,8 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace TradingIntelligence.Infrastructure.Collectors;
-
 public class NewsApiResponse
 {
-    [JsonPropertyName("status")]
-    public string Status { get; set; } = string.Empty;
-
-    [JsonPropertyName("totalResults")]
+    [JsonPropertyName("totalArticles")]  // GNews uses totalArticles not totalResults
     public int TotalResults { get; set; }
 
     [JsonPropertyName("articles")]
@@ -42,9 +37,9 @@ public class NewsApiArticle
 
 public class NewsApiSource
 {
-    [JsonPropertyName("id")]
-    public string? Id { get; set; }
-
     [JsonPropertyName("name")]
     public string Name { get; set; } = string.Empty;
+
+    [JsonPropertyName("url")]  // GNews has url instead of id
+    public string? Url { get; set; }
 }

@@ -51,6 +51,7 @@ services:
       - NewsApi__ApiKey=${NEWSAPI_API_KEY}
       - Telegram__BotToken=${TELEGRAM_BOT_TOKEN}
       - Telegram__ChatId=${TELEGRAM_CHAT_ID}
+      - GNews__ApiKey=${GNEWS_API_KEY}
     depends_on:
       postgres:
         condition: service_healthy

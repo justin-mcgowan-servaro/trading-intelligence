@@ -180,17 +180,17 @@ builder.Services.AddQuartz(q =>
         .WithCronSchedule("0 0 */4 * * ?"));
 
     // Google Trends — startup + every 2 hours
-    var googleTrendsJobKey = new JobKey("GoogleTrendsCollectorJob");
-    q.AddJob<GoogleTrendsCollectorJob>(opts => opts
-        .WithIdentity(googleTrendsJobKey).StoreDurably());
-    q.AddTrigger(opts => opts
-        .ForJob(googleTrendsJobKey)
-        .WithIdentity("GoogleTrendsStartupTrigger")
-        .StartAt(DateBuilder.FutureDate(120, IntervalUnit.Second)));
-    q.AddTrigger(opts => opts
-        .ForJob(googleTrendsJobKey)
-        .WithIdentity("GoogleTrendsRecurringTrigger")
-        .WithCronSchedule("0 0 */2 * * ?"));
+    //var googleTrendsJobKey = new JobKey("GoogleTrendsCollectorJob");
+    //q.AddJob<GoogleTrendsCollectorJob>(opts => opts
+    //    .WithIdentity(googleTrendsJobKey).StoreDurably());
+    //q.AddTrigger(opts => opts
+    //    .ForJob(googleTrendsJobKey)
+    //    .WithIdentity("GoogleTrendsStartupTrigger")
+    //    .StartAt(DateBuilder.FutureDate(120, IntervalUnit.Second)));
+    //q.AddTrigger(opts => opts
+    //    .ForJob(googleTrendsJobKey)
+    //    .WithIdentity("GoogleTrendsRecurringTrigger")
+    //    .WithCronSchedule("0 0 */2 * * ?"));
 
     // Reddit — hourly (no startup trigger — blocked from VPS anyway)
     var redditJobKey = new JobKey("RedditCollectorJob");

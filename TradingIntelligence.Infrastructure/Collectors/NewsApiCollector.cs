@@ -64,10 +64,10 @@ public class NewsApiCollector
 
     public async Task CollectAsync(CancellationToken cancellationToken = default)
     {
-        var apiKey = _config["NewsApi:ApiKey"];
+        var apiKey = _config["GNews:ApiKey"];
         if (string.IsNullOrEmpty(apiKey))
         {
-            _logger.LogWarning("NewsAPI key not configured — skipping");
+            _logger.LogWarning("GNews key not configured — skipping");
             return;
         }
 
@@ -166,20 +166,14 @@ public class NewsApiCollector
     }
 
     private async Task<List<NewsApiArticle>> FetchArticlesAsync(
-        string query,
-        string apiKey,
-        CancellationToken cancellationToken)
+    string query,
+    string apiKey,
+    CancellationToken cancellationToken)
     {
-        var from = DateTime.UtcNow.AddHours(-24)
-            .ToString("yyyy-MM-ddTHH:mm:ss");
-
-        var url = $"https://newsapi.org/v2/everything" +
+        var url = $"https://gnews.io/api/v4/search" +
                   $"?q={Uri.EscapeDataString(query)}" +
-                  $"&from={from}" +
-                  $"&language=en" +
-                  $"&sortBy=publishedAt" +
-                  $"&pageSize=20" +
-                  $"&apiKey={apiKey}";
+                  $"&lang=en&country=us&max=10" +
+                  $"&apikey={apiKey}";
 
         var response = await _httpClient.GetAsync(url, cancellationToken);
         if (!response.IsSuccessStatusCode) return new List<NewsApiArticle>();
@@ -189,7 +183,6 @@ public class NewsApiCollector
 
         return result?.Articles ?? new List<NewsApiArticle>();
     }
-
     private static double GetSourceCredibility(string sourceName)
     {
         foreach (var (key, value) in SourceCredibility)
