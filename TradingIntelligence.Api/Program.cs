@@ -7,6 +7,7 @@ using TradingIntelligence.Infrastructure.Data;
 using TradingIntelligence.Infrastructure.Helpers;
 using TradingIntelligence.Infrastructure.Jobs;
 using TradingIntelligence.Infrastructure.Services;
+using TradingIntelligence.Infrastructure.Jobs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -40,7 +41,7 @@ builder.Services.AddHttpClient("Reddit");
 
 // ── Collectors ───────────────────────────────────────────────────────────────
 builder.Services.AddScoped<RedditCollector>();
-
+builder.Services.AddScoped<StockTwitsCollector>();
 // ── Background Services ──────────────────────────────────────────────────────
 builder.Services.AddSingleton<SignalAggregatorService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<SignalAggregatorService>());
@@ -48,18 +49,23 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<SignalAggregatorSe
 // ── Quartz Scheduler ─────────────────────────────────────────────────────────
 builder.Services.AddQuartz(q =>
 {
-    // Reddit collector — runs every 30 minutes
+    // Reddit collector — hourly (public endpoint rate limit)
     var redditJobKey = new JobKey("RedditCollectorJob");
-
     q.AddJob<RedditCollectorJob>(opts => opts.WithIdentity(redditJobKey));
-
     q.AddTrigger(opts => opts
         .ForJob(redditJobKey)
         .WithIdentity("RedditCollectorTrigger")
-        //.WithCronSchedule("0 0/30 * * * ?")  // Every 30 minutes
-        //.WithCronSchedule("0 0 * * * ?")  // Every hour on the hour
-        .WithCronSchedule("0 57 10 * * ?")
+        .WithCronSchedule("0 0 * * * ?")
         .StartNow());
+
+    // StockTwits collector — every 30 minutes
+    var stockTwitsJobKey = new JobKey("StockTwitsCollectorJob");
+    q.AddJob<StockTwitsCollectorJob>(opts => opts.WithIdentity(stockTwitsJobKey));
+    q.AddTrigger(opts => opts
+        .ForJob(stockTwitsJobKey)
+        .WithIdentity("StockTwitsTrigger")
+        .WithCronSchedule("0 0/30 * * * ?")
+        .StartNow());   // ← StartNow fires immediately on startup
 });
 
 builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
