@@ -24,10 +24,16 @@ import { environment } from '../../../environments/environment';
           </span>
         </div>
         <div class="header-right">
-          <span class="connection-status" [class.connected]="signalService.isConnected()">
-            {{ signalService.isConnected() ? '● LIVE' : '○ CONNECTING...' }}
-          </span>
-          <span class="timestamp">{{ currentTime() }}</span>
+            <span class="connection-status" [class.connected]="signalService.isConnected()">
+                {{ signalService.isConnected() ? '● LIVE' : '○ CONNECTING...' }}
+            </span>
+            <button class="alert-bell" (click)="showAlertsPanel.set(!showAlertsPanel())">
+                🔔
+                @if (unreadCount() > 0) {
+                <span class="alert-count">{{ unreadCount() }}</span>
+                }
+            </button>
+            <span class="timestamp">{{ currentTime() }}</span>
         </div>
       </div>
 
@@ -156,6 +162,37 @@ import { environment } from '../../../environments/environment';
         </div>
       }
 
+      <!-- Alerts Panel -->
+@if (showAlertsPanel()) {
+  <div class="alerts-overlay" (click)="showAlertsPanel.set(false)">
+    <div class="alerts-panel" (click)="$event.stopPropagation()">
+      <div class="alerts-header">
+        <h3>🔔 Recent Alerts</h3>
+        <button (click)="showAlertsPanel.set(false)">✕</button>
+      </div>
+      @if (alerts().length === 0) {
+        <div class="alerts-empty">
+          No alerts yet. Alerts fire when a ticker scores 60+.
+        </div>
+      }
+      @for (alert of alerts(); track alert.tickerSymbol + alert.alertedAt) {
+        <div class="alert-item" [class]="'alert-' + alert.tradeBias?.toLowerCase()">
+          <div class="alert-top">
+            <span class="alert-ticker">{{ alert.tickerSymbol }}</span>
+            <span class="alert-score">{{ alert.totalScore }}/100</span>
+            <span class="alert-bias" [class]="biasBadgeClass(alert.tradeBias)">
+              {{ alert.tradeBias }}
+            </span>
+          </div>
+          <div class="alert-bottom">
+            <span class="alert-signals">{{ alert.signalSummary }}</span>
+            <span class="alert-time">{{ alert.alertedAt }}</span>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+}
     </div>
   `,
   styles: [`
@@ -231,6 +268,26 @@ import { environment } from '../../../environments/environment';
     .big-score { font-size: 48px; font-weight: 700; color: #e6edf3; }
     .ai-analysis h3 { color: #8b949e; font-size: 13px; text-transform: uppercase; margin-bottom: 12px; }
     .ai-analysis pre { white-space: pre-wrap; font-family: 'Fira Code', monospace; font-size: 13px; line-height: 1.6; color: #e6edf3; background: #0d1117; padding: 16px; border-radius: 8px; border: 1px solid #21262d; }
+  
+    .alert-bell { position: relative; background: none; border: none; font-size: 20px; cursor: pointer; padding: 4px 8px; }
+.alert-count { position: absolute; top: -4px; right: -4px; background: #f85149; color: white; border-radius: 10px; font-size: 10px; font-weight: 700; padding: 1px 5px; min-width: 16px; text-align: center; animation: pulse 1s infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+
+.alerts-overlay { position: fixed; inset: 0; z-index: 200; }
+.alerts-panel { position: fixed; top: 0; right: 0; bottom: 0; width: 380px; background: #161b22; border-left: 1px solid #21262d; overflow-y: auto; z-index: 201; box-shadow: -4px 0 20px rgba(0,0,0,0.5); }
+.alerts-header { display: flex; justify-content: space-between; align-items: center; padding: 20px; border-bottom: 1px solid #21262d; position: sticky; top: 0; background: #161b22; }
+.alerts-header h3 { margin: 0; color: #e6edf3; }
+.alerts-header button { background: none; border: none; color: #8b949e; font-size: 18px; cursor: pointer; }
+.alerts-empty { padding: 40px 20px; text-align: center; color: #8b949e; }
+
+.alert-item { padding: 16px 20px; border-bottom: 1px solid #21262d; transition: background 0.15s; }
+.alert-item:hover { background: #1c2128; }
+.alert-top { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.alert-ticker { font-weight: 700; font-size: 16px; color: #58a6ff; }
+.alert-score { font-weight: 700; color: #e6edf3; }
+.alert-bottom { display: flex; justify-content: space-between; }
+.alert-signals { font-size: 12px; color: #8b949e; }
+.alert-time { font-size: 11px; color: #6e7681; white-space: nowrap; }
   `]
 })
 export class DashboardComponent implements OnInit, OnDestroy {
@@ -270,13 +327,32 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.loadScores();
-    this.signalService.connect();
+  this.loadScores();
+  this.loadAlerts();
+  this.signalService.connect();
+  setInterval(() => this.currentTime.set(this.getSastTime()), 1000);
+  // Refresh scores every 5 minutes
+  setInterval(() => this.loadScores(), 5 * 60 * 1000);
+  // Refresh alerts every 2 minutes
+  setInterval(() => this.loadAlerts(), 2 * 60 * 1000);
+}
 
-    // Update clock every second
-    setInterval(() => this.currentTime.set(this.getSastTime()), 1000);
-  }
-
+  alerts = signal<any[]>([]);
+showAlertsPanel = signal(false);
+unreadCount = signal(0);
+loadAlerts(): void {
+  this.http.get<any[]>(`${environment.apiUrl}/api/momentum/alerts`)
+    .subscribe({
+      next: (data) => {
+        const parsed = data.map(a => {
+          try { return JSON.parse(a); } catch { return null; }
+        }).filter(Boolean);
+        this.alerts.set(parsed);
+        this.unreadCount.set(parsed.length);
+      },
+      error: () => {}
+    });
+}
   ngOnDestroy(): void {
     this.signalService.disconnect();
   }

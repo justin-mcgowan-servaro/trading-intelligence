@@ -28,6 +28,7 @@ public class MomentumScoringService : BackgroundService
     private readonly IRealtimeNotifier _notifier;
 
     private const decimal MinScoreForAi = 60m;
+    private readonly TelegramAlertService _telegram;
 
     public MomentumScoringService(
         IConnectionMultiplexer redis,
@@ -35,7 +36,8 @@ public class MomentumScoringService : BackgroundService
         SignalAggregatorService aggregator,
         IConfiguration config,
         ILogger<MomentumScoringService> logger,
-        IRealtimeNotifier notifier)
+        IRealtimeNotifier notifier,
+        TelegramAlertService telegram)
     {
         _redis = redis;
         _scopeFactory = scopeFactory;
@@ -43,6 +45,7 @@ public class MomentumScoringService : BackgroundService
         _config = config;
         _logger = logger;
         _notifier = notifier;
+        _telegram = telegram;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -176,6 +179,25 @@ public class MomentumScoringService : BackgroundService
 
             // ── Push to Angular via SignalR ──────────────────────────────────────
             await _notifier.NotifyMomentumUpdate(new MomentumScoreResult
+            {
+                TickerSymbol = ticker,
+                TotalScore = totalScore,
+                RedditScore = redditScore,
+                NewsScore = newsScore,
+                VolumeScore = volumeScore,
+                OptionsScore = optionsScore,
+                SentimentScore = sentimentScore,
+                TradeBias = tradeBias,
+                Confidence = totalScore >= 80 ? "HIGH"
+                               : totalScore >= 60 ? "MEDIUM" : "LOW",
+                SignalSummary = BuildSignalSummary(signals),
+                AiAnalysis = aiAnalysis,
+                Session = session,
+                ScoredAt = DateTime.UtcNow,
+                ScoredAtSast = MarketSessionHelper.ToSast(DateTime.UtcNow)
+            }, cancellationToken);
+            // ── Send Telegram alert if score qualifies ───────────────────────────
+            await _telegram.SendScoreAlertAsync(new MomentumScoreResult
             {
                 TickerSymbol = ticker,
                 TotalScore = totalScore,

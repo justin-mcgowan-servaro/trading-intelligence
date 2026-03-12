@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using StackExchange.Redis;
 using TradingIntelligence.Infrastructure.Data;
 using TradingIntelligence.Infrastructure.Helpers;
 using TradingIntelligence.Infrastructure.Services;
@@ -12,13 +13,16 @@ public class MomentumController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly SignalAggregatorService _aggregator;
+    private readonly IConnectionMultiplexer _redis;
 
     public MomentumController(
         AppDbContext db,
-        SignalAggregatorService aggregator)
+        SignalAggregatorService aggregator,
+        IConnectionMultiplexer redis)
     {
         _db = db;
         _aggregator = aggregator;
+        _redis = redis;
     }
 
     // GET /api/momentum/top
@@ -136,4 +140,15 @@ public class MomentumController : ControllerBase
                 .Select(kv => new { ticker = kv.Key, signalCount = kv.Value })
         });
     }
+
+    // GET /api/momentum/alerts
+    // Returns recent high-score alerts for dashboard notification panel
+    [HttpGet("alerts")]
+    public async Task<IActionResult> GetAlerts()
+    {
+        var db = _redis.GetDatabase();
+        var alerts = await TelegramAlertService.GetRecentAlertsAsync(db);
+        return Ok(alerts);
+    }
+
 }

@@ -1,0 +1,212 @@
+﻿using System.Text.Json;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using StackExchange.Redis;
+using TradingIntelligence.Core.Enums;
+using TradingIntelligence.Core.Models;
+using TradingIntelligence.Infrastructure.Helpers;
+
+namespace TradingIntelligence.Infrastructure.Collectors;
+
+public class NewsApiCollector
+{
+    private readonly IConfiguration _config;
+    private readonly IConnectionMultiplexer _redis;
+    private readonly ILogger<NewsApiCollector> _logger;
+    private readonly HttpClient _httpClient;
+
+    // High credibility financial sources on NewsAPI
+    private static readonly Dictionary<string, double> SourceCredibility =
+        new(StringComparer.OrdinalIgnoreCase)
+    {
+        { "bloomberg",          1.0 },
+        { "reuters",            1.0 },
+        { "the wall street journal", 1.0 },
+        { "financial times",    1.0 },
+        { "cnbc",               0.9 },
+        { "marketwatch",        0.9 },
+        { "forbes",             0.8 },
+        { "business insider",   0.7 },
+        { "yahoo finance",      0.8 },
+        { "seeking alpha",      0.7 },
+        { "benzinga",           0.8 },
+        { "investor's business daily", 0.9 },
+    };
+
+    private static readonly Dictionary<string, int> CatalystKeywords =
+        new(StringComparer.OrdinalIgnoreCase)
+    {
+        { "earnings beat",      18 }, { "earnings miss",     16 },
+        { "revenue beat",       16 }, { "revenue miss",      14 },
+        { "raised guidance",    17 }, { "lowered guidance",  15 },
+        { "acquisition",        14 }, { "merger",            13 },
+        { "fda approval",       18 }, { "fda rejection",     17 },
+        { "analyst upgrade",    14 }, { "analyst downgrade", 14 },
+        { "price target raised",15 }, { "price target cut",  14 },
+        { "share buyback",      13 }, { "dividend increase", 13 },
+        { "ceo resign",         16 }, { "bankruptcy",        18 },
+        { "profit warning",     17 }, { "record revenue",    16 },
+        { "beat estimates",     16 }, { "miss estimates",    15 },
+        { "raised outlook",     16 }, { "cut outlook",       15 },
+    };
+
+    public NewsApiCollector(
+        IConfiguration config,
+        IConnectionMultiplexer redis,
+        ILogger<NewsApiCollector> logger,
+        IHttpClientFactory httpClientFactory)
+    {
+        _config = config;
+        _redis = redis;
+        _logger = logger;
+        _httpClient = httpClientFactory.CreateClient("NewsApi");
+    }
+
+    public async Task CollectAsync(CancellationToken cancellationToken = default)
+    {
+        var apiKey = _config["NewsApi:ApiKey"];
+        if (string.IsNullOrEmpty(apiKey))
+        {
+            _logger.LogWarning("NewsAPI key not configured — skipping");
+            return;
+        }
+
+        _logger.LogInformation("NewsAPI collection started at {Time}",
+            MarketSessionHelper.ToSast(DateTime.UtcNow));
+
+        var db = _redis.GetDatabase();
+        var pub = _redis.GetSubscriber();
+        int totalPublished = 0;
+
+        // Search for financial market news
+        var queries = new[]
+        {
+            "stock market earnings",
+            "nasdaq nyse earnings beat miss",
+            "stock upgrade downgrade analyst",
+            "merger acquisition deal",
+            "FDA approval rejection"
+        };
+
+        foreach (var query in queries)
+        {
+            if (cancellationToken.IsCancellationRequested) break;
+
+            try
+            {
+                var articles = await FetchArticlesAsync(
+                    query, apiKey, cancellationToken);
+
+                _logger.LogInformation(
+                    "NewsAPI query '{Query}': {Count} articles",
+                    query, articles.Count);
+
+                foreach (var article in articles)
+                {
+                    if (article.PublishedAtParsed < DateTime.UtcNow.AddHours(-24))
+                        continue;
+
+                    var fullText = $"{article.Title} {article.Description}";
+                    var tickers = TickerExtractor.Extract(fullText);
+                    if (!tickers.Any()) continue;
+
+                    // Dedup by URL hash
+                    var dedupKey = $"newsapi:seen:{article.Url.GetHashCode()}";
+                    if (await db.KeyExistsAsync(dedupKey)) continue;
+                    await db.StringSetAsync(dedupKey, "1", TimeSpan.FromHours(25));
+
+                    var credibility = GetSourceCredibility(
+                        article.Source?.Name ?? string.Empty);
+                    var catalystScore = CalculateCatalystScore(
+                        fullText, credibility);
+                    var sentiment = SentimentAnalyser.Score(fullText);
+
+                    var signal = new RawSignalEvent
+                    {
+                        SignalType = SignalType.NewsCatalyst,
+                        Tickers = tickers,
+                        Source = $"newsapi:{article.Source?.Name ?? "unknown"}",
+                        RawText = article.Title,
+                        SentimentScore = sentiment,
+                        RawData = JsonSerializer.Serialize(new
+                        {
+                            article.Title,
+                            article.Description,
+                            article.Url,
+                            Source = article.Source?.Name,
+                            article.PublishedAtParsed,
+                            CatalystScore = catalystScore,
+                            CredibilityWeight = credibility,
+                            SentimentLabel = SentimentAnalyser.Label(sentiment)
+                        }),
+                        AuthorKarma = (int)(catalystScore * 10),
+                        AccountAgeMonths = 120,
+                        DetectedAt = DateTime.UtcNow
+                    };
+
+                    var payload = JsonSerializer.Serialize(signal);
+                    await pub.PublishAsync(
+                        RedisChannel.Literal("raw-signals"), payload);
+
+                    totalPublished++;
+                }
+
+                await Task.Delay(1000, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Error fetching NewsAPI query '{Query}'", query);
+            }
+        }
+
+        _logger.LogInformation(
+            "NewsAPI collection complete — {Count} signals published",
+            totalPublished);
+    }
+
+    private async Task<List<NewsApiArticle>> FetchArticlesAsync(
+        string query,
+        string apiKey,
+        CancellationToken cancellationToken)
+    {
+        var from = DateTime.UtcNow.AddHours(-24)
+            .ToString("yyyy-MM-ddTHH:mm:ss");
+
+        var url = $"https://newsapi.org/v2/everything" +
+                  $"?q={Uri.EscapeDataString(query)}" +
+                  $"&from={from}" +
+                  $"&language=en" +
+                  $"&sortBy=publishedAt" +
+                  $"&pageSize=20" +
+                  $"&apiKey={apiKey}";
+
+        var response = await _httpClient.GetAsync(url, cancellationToken);
+        if (!response.IsSuccessStatusCode) return new List<NewsApiArticle>();
+
+        var json = await response.Content.ReadAsStringAsync(cancellationToken);
+        var result = JsonSerializer.Deserialize<NewsApiResponse>(json);
+
+        return result?.Articles ?? new List<NewsApiArticle>();
+    }
+
+    private static double GetSourceCredibility(string sourceName)
+    {
+        foreach (var (key, value) in SourceCredibility)
+            if (sourceName.Contains(key, StringComparison.OrdinalIgnoreCase))
+                return value;
+        return 0.6; // Default credibility for unknown sources
+    }
+
+    private static decimal CalculateCatalystScore(
+        string text, double credibility)
+    {
+        int rawScore = 5;
+        foreach (var (keyword, score) in CatalystKeywords)
+            if (text.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+                rawScore = Math.Max(rawScore, score);
+
+        return (decimal)Math.Min(20,
+            Math.Max(0, Math.Round(rawScore * credibility, 1)));
+    }
+}

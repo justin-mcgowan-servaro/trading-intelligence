@@ -47,6 +47,10 @@ services:
       - Jwt__ExpiryHours=24
       - OpenAI__ApiKey=${OPENAI_API_KEY}
       - AlphaVantage__ApiKey=${ALPHAVANTAGE_API_KEY}
+      - Polygon__ApiKey=${POLYGON_API_KEY}
+      - NewsApi__ApiKey=${NEWSAPI_API_KEY}
+      - Telegram__BotToken=${TELEGRAM_BOT_TOKEN}
+      - Telegram__ChatId=${TELEGRAM_CHAT_ID}
     depends_on:
       postgres:
         condition: service_healthy

@@ -79,11 +79,21 @@ builder.Services.AddHttpClient("StockTwits");
 builder.Services.AddHttpClient("News");
 builder.Services.AddHttpClient("Volume");
 
+builder.Services.AddHttpClient("NewsApi");
+builder.Services.AddHttpClient("Polygon");
+builder.Services.AddHttpClient("FearGreed");
+builder.Services.AddHttpClient("GoogleTrends");
+builder.Services.AddHttpClient("Telegram");
+
 // ── Collectors ────────────────────────────────────────────────────────────────
 builder.Services.AddScoped<RedditCollector>();
 builder.Services.AddScoped<StockTwitsCollector>();
 builder.Services.AddScoped<NewsCollector>();
 builder.Services.AddScoped<VolumeCollector>();
+builder.Services.AddScoped<NewsApiCollector>();       // ← add
+builder.Services.AddScoped<PolygonCollector>();       // ← add
+builder.Services.AddScoped<FearGreedCollector>();     // ← add
+builder.Services.AddScoped<GoogleTrendsCollector>();  // ← add
 
 builder.Services.AddScoped<IRealtimeNotifier, SignalRNotifier>();
 
@@ -92,6 +102,14 @@ builder.Services.AddSingleton<SignalAggregatorService>();
 builder.Services.AddHostedService(sp =>
     sp.GetRequiredService<SignalAggregatorService>());
 
+// Alert service — singleton so it can be injected into MomentumScoringService
+builder.Services.AddSingleton<TelegramAlertService>(sp =>
+    new TelegramAlertService(
+        sp.GetRequiredService<IConfiguration>(),
+        sp.GetRequiredService<IConnectionMultiplexer>(),
+        sp.GetRequiredService<ILogger<TelegramAlertService>>(),
+        sp.GetRequiredService<IHttpClientFactory>()));
+
 builder.Services.AddSingleton<MomentumScoringService>(sp =>
     new MomentumScoringService(
         sp.GetRequiredService<IConnectionMultiplexer>(),
@@ -99,7 +117,8 @@ builder.Services.AddSingleton<MomentumScoringService>(sp =>
         sp.GetRequiredService<SignalAggregatorService>(),
         sp.GetRequiredService<IConfiguration>(),
         sp.GetRequiredService<ILogger<MomentumScoringService>>(),
-        sp.GetRequiredService<IRealtimeNotifier>()));
+        sp.GetRequiredService<IRealtimeNotifier>(),
+        sp.GetRequiredService<TelegramAlertService>()));
 
 // ← This is the line that was missing — registers it as a hosted service
 builder.Services.AddHostedService(sp =>
@@ -144,6 +163,50 @@ builder.Services.AddQuartz(q =>
         .WithIdentity("VolumeCollectorTrigger")
         .WithCronSchedule("0 0 */4 * * ?")
         .StartAt(DateBuilder.FutureDate(60, IntervalUnit.Second)));
+
+    // NewsAPI collector — every hour at :30
+    var newsApiJobKey = new JobKey("NewsApiCollectorJob");
+    q.AddJob<NewsApiCollectorJob>(opts => opts.WithIdentity(newsApiJobKey));
+    q.AddTrigger(opts => opts
+        .ForJob(newsApiJobKey)
+        .WithIdentity("NewsApiCollectorTrigger")
+        .WithCronSchedule("0 30 * * * ?")
+        .StartAt(DateBuilder.FutureDate(90, IntervalUnit.Second)));
+
+    // Polygon collector — every 4 hours
+    var polygonJobKey = new JobKey("PolygonCollectorJob");
+    q.AddJob<PolygonCollectorJob>(opts => opts.WithIdentity(polygonJobKey));
+    q.AddTrigger(opts => opts
+        .ForJob(polygonJobKey)
+        .WithIdentity("PolygonCollectorTrigger")
+        .WithCronSchedule("0 0 */4 * * ?")
+        .StartAt(DateBuilder.FutureDate(120, IntervalUnit.Second)));
+
+    // Fear & Greed — every hour at :45
+    var fearGreedJobKey = new JobKey("FearGreedCollectorJob");
+    q.AddJob<FearGreedCollectorJob>(opts => opts.WithIdentity(fearGreedJobKey));
+    q.AddTrigger(opts => opts
+        .ForJob(fearGreedJobKey)
+        .WithIdentity("FearGreedCollectorTrigger")
+        .WithCronSchedule("0 45 * * * ?")
+        .StartAt(DateBuilder.FutureDate(15, IntervalUnit.Second)));
+
+    // Google Trends — every 2 hours
+    var googleTrendsJobKey = new JobKey("GoogleTrendsCollectorJob");
+    q.AddJob<GoogleTrendsCollectorJob>(opts => opts.WithIdentity(googleTrendsJobKey));
+    q.AddTrigger(opts => opts
+        .ForJob(googleTrendsJobKey)
+        .WithIdentity("GoogleTrendsTrigger")
+        .WithCronSchedule("0 0 */2 * * ?")
+        .StartAt(DateBuilder.FutureDate(20, IntervalUnit.Second)));
+
+    // Morning briefing — 04:00 UTC = 06:00 SAST daily
+    var morningBriefingJobKey = new JobKey("MorningBriefingJob");
+    q.AddJob<MorningBriefingJob>(opts => opts.WithIdentity(morningBriefingJobKey));
+    q.AddTrigger(opts => opts
+        .ForJob(morningBriefingJobKey)
+        .WithIdentity("MorningBriefingTrigger")
+        .WithCronSchedule("0 0 4 * * ?"));
 });
 
 builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
