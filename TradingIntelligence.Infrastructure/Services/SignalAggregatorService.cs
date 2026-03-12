@@ -105,7 +105,7 @@ public class SignalAggregatorService : BackgroundService
                         .Count();
                 }
 
-                if (distinctSignalTypes >= 1)
+                if (distinctSignalTypes >= 3)
                 {
                     // Check cooldown — don't score same ticker more than once per 30 mins
                     if (_lastScored.TryGetValue(ticker, out var lastTime) &&
