@@ -424,7 +424,7 @@ import { SparklineComponent } from '../../core/components/sparkline.component';
     .scores-table tbody tr.strong-signal { background: rgba(63, 185, 80, 0.05); }
     .scores-table tbody tr.watch-signal { background: rgba(210, 153, 34, 0.05); }
     .scores-table td { padding: 12px 16px; font-size: 14px; }
-    . { font-weight: 700; font-size: 15px; color: #58a6ff; }
+    .ticker-symbol { font-weight: 700; font-size: 15px; color: #58a6ff; }
     .score-bar-container { position: relative; background: #21262d; border-radius: 4px; height: 24px; width: 120px; overflow: hidden; }
     .score-bar { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; transition: width 0.5s ease; }
     .score-bar.high { background: linear-gradient(90deg, #1a4731, #3fb950); }
@@ -590,6 +590,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return '';
   });
 
+  sortedScores = computed(() => {
+    const watchlisted = this.watchlistService.watchlisted();
+    return [...this.scores()].sort((a, b) => {
+      const aWatched = watchlisted.has(a.tickerSymbol) ? 1 : 0;
+      const bWatched = watchlisted.has(b.tickerSymbol) ? 1 : 0;
+      if (bWatched !== aWatched) return bWatched - aWatched; // Watchlisted first
+      return b.totalScore - a.totalScore;                    // Then by score
+    });
+  });
   longCount = computed(() => this.scores().filter(s => s.tradeBias === 'Long').length);
   shortCount = computed(() => this.scores().filter(s => s.tradeBias === 'Short').length);
   watchCount = computed(() => this.scores().filter(s => s.tradeBias === 'Watch').length);

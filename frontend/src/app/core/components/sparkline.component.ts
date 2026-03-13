@@ -31,15 +31,23 @@ export class SparklineComponent {
   latestScore = input<number>(0);
 
   // Unique gradient ID per instance to avoid SVG conflicts
-  gradId = computed(() => `spark-grad-${Math.abs(this.data().join('').hashCode ? 0 : this.data().reduce((a, b) => a + b, 0))}-${this.width()}`);
-
+ gradId = computed(() =>
+  `spark-grad-${Math.abs(this.hash(this.data().join(',')))}-${this.width()}`
+);
   lineColor = computed(() => {
     const s = this.latestScore();
     if (s >= 60) return '#3fb950';
     if (s >= 40) return '#d29922';
     return '#6e7681';
   });
-
+  private hash(str: string): number {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = (hash << 5) - hash + str.charCodeAt(i);
+      hash |= 0;
+    }
+    return hash;
+  }
   points = computed(() => {
     const d = this.data();
     if (d.length < 2) return [];

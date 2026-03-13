@@ -178,10 +178,10 @@ C:\Development\Projects\TradingIntelligence\TradingIntelligence.Api\obj\Debug\ne
 C:\Development\Projects\TradingIntelligence\TradingIntelligence.Api\obj\Debug\net10.0\staticwebassets.development.json
 C:\Development\Projects\TradingIntelligence\TradingIntelligence.Api\obj\Debug\net10.0\staticwebassets.build.endpoints.json
 C:\Development\Projects\TradingIntelligence\TradingIntelligence.Api\obj\Debug\net10.0\swae.build.ex.cache
-C:\Development\Projects\TradingIntelligence\TradingIntelligence.Api\obj\Debug\net10.0\staticwebassets.upToDateCheck.txt
 C:\Development\Projects\TradingIntelligence\TradingIntelligence.Api\obj\Debug\net10.0\TradingI.568C29BA.Up2Date
 C:\Development\Projects\TradingIntelligence\TradingIntelligence.Api\obj\Debug\net10.0\TradingIntelligence.Api.dll
 C:\Development\Projects\TradingIntelligence\TradingIntelligence.Api\obj\Debug\net10.0\refint\TradingIntelligence.Api.dll
 C:\Development\Projects\TradingIntelligence\TradingIntelligence.Api\obj\Debug\net10.0\TradingIntelligence.Api.pdb
 C:\Development\Projects\TradingIntelligence\TradingIntelligence.Api\obj\Debug\net10.0\TradingIntelligence.Api.genruntimeconfig.cache
 C:\Development\Projects\TradingIntelligence\TradingIntelligence.Api\obj\Debug\net10.0\ref\TradingIntelligence.Api.dll
+C:\Development\Projects\TradingIntelligence\TradingIntelligence.Api\obj\Debug\net10.0\staticwebassets.upToDateCheck.txt

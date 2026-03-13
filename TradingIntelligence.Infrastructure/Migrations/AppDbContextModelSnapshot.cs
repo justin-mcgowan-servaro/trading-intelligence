@@ -22,6 +22,62 @@ namespace TradingIntelligence.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("TradingIntelligence.Core.Entities.BrokerTrade", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BrokerStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("CurrentPrice")
+                        .HasColumnType("numeric");
+
+                    b.Property<int>("Direction")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasColumnType("text");
+
+                    b.Property<decimal?>("FilledPrice")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("LotSize")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("Mt5Symbol")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<long>("Mt5Ticket")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("OpenedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("PaperTradeId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("SyncedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BrokerStatus");
+
+                    b.HasIndex("PaperTradeId")
+                        .IsUnique();
+
+                    b.ToTable("BrokerTrades");
+                });
+
             modelBuilder.Entity("TradingIntelligence.Core.Entities.MomentumScore", b =>
                 {
                     b.Property<int>("Id")
@@ -83,6 +139,148 @@ namespace TradingIntelligence.Infrastructure.Migrations
                     b.HasIndex("TickerSymbol", "ScoredAt");
 
                     b.ToTable("MomentumScores");
+                });
+
+            modelBuilder.Entity("TradingIntelligence.Core.Entities.OtpCode", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("IpAddress")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("Used")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("OtpCodes");
+                });
+
+            modelBuilder.Entity("TradingIntelligence.Core.Entities.PaperTrade", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Direction")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("EntryPrice")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal?>("ExitPrice")
+                        .HasColumnType("numeric");
+
+                    b.Property<int>("MomentumScoreId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("OpenedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Outcome")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("PnlPercent")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal?>("PnlPoints")
+                        .HasColumnType("numeric");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TickerSymbol")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("TotalScoreAtEntry")
+                        .HasColumnType("numeric");
+
+                    b.Property<int>("TradeBias")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MomentumScoreId")
+                        .IsUnique();
+
+                    b.ToTable("PaperTrades");
+                });
+
+            modelBuilder.Entity("TradingIntelligence.Core.Entities.SignalAccuracy", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("AvgPnlPercent")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("AvgScoreAtEntry")
+                        .HasColumnType("numeric");
+
+                    b.Property<int>("Breakevens")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("LastUpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Losses")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TickerSymbol")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("TotalTrades")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("WinRate")
+                        .HasColumnType("numeric");
+
+                    b.Property<int>("Wins")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TickerSymbol")
+                        .IsUnique();
+
+                    b.ToTable("SignalAccuracies");
                 });
 
             modelBuilder.Entity("TradingIntelligence.Core.Entities.SignalEvent", b =>
@@ -331,6 +529,58 @@ namespace TradingIntelligence.Infrastructure.Migrations
                     b.ToTable("Watchlists");
                 });
 
+            modelBuilder.Entity("TradingIntelligence.Infrastructure.Data.OtpCode", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("IpAddress")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("Used")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email");
+
+                    b.HasIndex("ExpiresAt");
+
+                    b.ToTable("OtpCode");
+                });
+
+            modelBuilder.Entity("TradingIntelligence.Core.Entities.BrokerTrade", b =>
+                {
+                    b.HasOne("TradingIntelligence.Core.Entities.PaperTrade", "PaperTrade")
+                        .WithOne("BrokerTrade")
+                        .HasForeignKey("TradingIntelligence.Core.Entities.BrokerTrade", "PaperTradeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("PaperTrade");
+                });
+
             modelBuilder.Entity("TradingIntelligence.Core.Entities.MomentumScore", b =>
                 {
                     b.HasOne("TradingIntelligence.Core.Entities.Ticker", "Ticker")
@@ -338,6 +588,17 @@ namespace TradingIntelligence.Infrastructure.Migrations
                         .HasForeignKey("TickerId");
 
                     b.Navigation("Ticker");
+                });
+
+            modelBuilder.Entity("TradingIntelligence.Core.Entities.PaperTrade", b =>
+                {
+                    b.HasOne("TradingIntelligence.Core.Entities.MomentumScore", "MomentumScore")
+                        .WithMany()
+                        .HasForeignKey("MomentumScoreId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MomentumScore");
                 });
 
             modelBuilder.Entity("TradingIntelligence.Core.Entities.SignalEvent", b =>
@@ -358,6 +619,11 @@ namespace TradingIntelligence.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("TradingIntelligence.Core.Entities.PaperTrade", b =>
+                {
+                    b.Navigation("BrokerTrade");
                 });
 
             modelBuilder.Entity("TradingIntelligence.Core.Entities.Ticker", b =>

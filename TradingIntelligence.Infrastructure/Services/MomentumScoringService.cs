@@ -38,8 +38,7 @@ public class MomentumScoringService : BackgroundService
         IConfiguration config,
         ILogger<MomentumScoringService> logger,
         IRealtimeNotifier notifier,
-        TelegramAlertService telegram,
-        PaperTradeService paperTradeService)
+        TelegramAlertService telegram)
     {
         _redis = redis;
         _scopeFactory = scopeFactory;
@@ -48,7 +47,6 @@ public class MomentumScoringService : BackgroundService
         _logger = logger;
         _notifier = notifier;
         _telegram = telegram;
-        _paperTradeService = paperTradeService;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -157,10 +155,11 @@ public class MomentumScoringService : BackgroundService
                 ticker, totalScore, tradeBias,
                 MarketSessionHelper.ToSast(DateTime.UtcNow));
             // Auto paper trade — fires at 65+, only Long or Short bias
-            if (totalScore >= 65 &&
-                (tradeBias == TradeBias.Long || tradeBias == TradeBias.Short))
+            if (totalScore >= 65 && (tradeBias == TradeBias.Long || tradeBias == TradeBias.Short))
             {
-                await _paperTradeService.TryCreateAutoTradeAsync(scoreEntity);
+                var paperTradeService = scope.ServiceProvider
+                    .GetRequiredService<IPaperTradeService>();
+                await paperTradeService.TryCreateAutoTradeAsync(scoreEntity);
             }
             // ── Publish result to scored-results channel for SignalR ─────
             var pub = _redis.GetSubscriber();

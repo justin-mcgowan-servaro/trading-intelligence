@@ -98,7 +98,7 @@ builder.Services.AddScoped<GoogleTrendsCollector>();  // ← add
 
 builder.Services.AddScoped<OptionsCollector>();
 
-builder.Services.AddScoped<IRealtimeNotifier, SignalRNotifier>();
+builder.Services.AddSingleton<IRealtimeNotifier, SignalRNotifier>();
 builder.Services.AddScoped<IPaperTradeService, PaperTradeService>();
 builder.Services.AddScoped<IMt5BridgeService, Mt5BridgeService>();
 builder.Services.AddSingleton<IPolygonPriceService, PolygonPriceService>();
@@ -128,8 +128,7 @@ builder.Services.AddSingleton<MomentumScoringService>(sp =>
         sp.GetRequiredService<IConfiguration>(),
         sp.GetRequiredService<ILogger<MomentumScoringService>>(),
         sp.GetRequiredService<IRealtimeNotifier>(),
-        sp.GetRequiredService<TelegramAlertService>(),
-        sp.GetRequiredService<PaperTradeService>()));
+        sp.GetRequiredService<TelegramAlertService>()));
 
 // ← This is the line that was missing — registers it as a hosted service
 builder.Services.AddHostedService(sp =>
