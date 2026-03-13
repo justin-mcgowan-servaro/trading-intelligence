@@ -7,11 +7,12 @@ import { MomentumSignalService, MomentumUpdate } from '../../core/services/momen
 import { environment } from '../../../environments/environment';
 import { WatchlistService } from '../../core/services/watchlist.service';
 import { AuthService } from '../../core/services/auth.service';
+import { SparklineComponent } from '../../core/components/sparkline.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, SparklineComponent],
   template: `
     <div class="dashboard">
 
@@ -75,6 +76,7 @@ import { AuthService } from '../../core/services/auth.service';
                 <th class="star-col"></th>
                 <th>Ticker</th>
                 <th>Score</th>
+                <th>Trend</th>
                 <th>Bias</th>
                 <th>Reddit</th>
                 <th>News</th>
@@ -106,6 +108,14 @@ import { AuthService } from '../../core/services/auth.service';
                       </div>
                       <span class="score-value">{{ score.totalScore | number:'1.0-0' }}</span>
                     </div>
+                  </td>
+                  <td class="spark-cell">
+                    <app-sparkline
+                      [data]="getHistory(score.tickerSymbol)"
+                      [latestScore]="score.totalScore"
+                      [width]="80"
+                      [height]="26">
+                    </app-sparkline>
                   </td>
                   <td>
                     <span class="bias-badge" [class]="biasBadgeClass(score.tradeBias)">
@@ -191,6 +201,21 @@ import { AuthService } from '../../core/services/auth.service';
               @if (!tickerLoading() && tickerDetail() && activeTab() === 'overview') {
                 <div class="tab-content">
 
+                  @if (getHistory(tickerDetail()!.latest.tickerSymbol).length > 1) {
+                    <div class="section-title">Score Trend</div>
+                    <div class="modal-spark-wrap">
+                      <app-sparkline
+                        [data]="getHistory(tickerDetail()!.latest.tickerSymbol)"
+                        [latestScore]="tickerDetail()!.latest.totalScore"
+                        [width]="780"
+                        [height]="60">
+                      </app-sparkline>
+                      <div class="spark-axis">
+                        <span>{{ getHistory(tickerDetail()!.latest.tickerSymbol)[0] | number:'1.0-0' }}</span>
+                        <span>{{ getHistory(tickerDetail()!.latest.tickerSymbol)[getHistory(tickerDetail()!.latest.tickerSymbol).length - 1] | number:'1.0-0' }}</span>
+                      </div>
+                    </div>
+                  }  
                   <!-- Signal Breakdown -->
                   <div class="section-title">Signal Breakdown</div>
                   <div class="signal-grid">
@@ -528,6 +553,10 @@ import { AuthService } from '../../core/services/auth.service';
 .scores-table tbody tr.pinned-row {
   border-left: 2px solid #d29922;
 }
+.spark-cell { padding: 8px 16px !important; }
+.modal-spark-wrap { background: #0d1117; border: 1px solid #21262d; border-radius: 8px; padding: 12px; margin-bottom: 20px; }
+.modal-spark-wrap app-sparkline { width: 100%; display: block; }
+.spark-axis { display: flex; justify-content: space-between; font-size: 11px; color: #6e7681; margin-top: 4px; padding: 0 3px; }
   `]
 })
 export class DashboardComponent implements OnInit, OnDestroy {
@@ -549,7 +578,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   alerts = signal<any[]>([]);
   showAlertsPanel = signal(false);
   unreadCount = signal(0);
-
+  scoreHistory = signal<Map<string, number[]>>(new Map());
+  
   sessionClass = computed(() => {
     const s = this.session();
     if (s.includes('Open')) return 'open';
@@ -565,12 +595,22 @@ export class DashboardComponent implements OnInit, OnDestroy {
     effect(() => {
       const update = this.signalService.lastUpdate();
       if (!update) return;
+    
+      // Update scores table
       this.scores.update(current => {
         const idx = current.findIndex(s => s.tickerSymbol === update.tickerSymbol);
         const mapped = this.mapUpdate(update);
         if (idx >= 0) current[idx] = mapped;
         else current.unshift(mapped);
         return [...current].sort((a, b) => b.totalScore - a.totalScore);
+      });
+    
+      // Append to sparkline history (keep last 20 points)
+      this.scoreHistory.update(map => {
+        const next = new Map(map);
+        const existing = next.get(update.tickerSymbol) ?? [];
+        next.set(update.tickerSymbol, [...existing, update.totalScore].slice(-20));
+        return next;
       });
     });
   }
@@ -596,6 +636,17 @@ export class DashboardComponent implements OnInit, OnDestroy {
           this.scores.set(response.data);
           this.session.set(response.session);
           this.loading.set(false);
+          // Seed history — initial load gives us the latest score per ticker
+          // History will grow as SignalR updates arrive
+          this.scoreHistory.update(map => {
+            const next = new Map(map);
+            for (const s of response.data) {
+              if (!next.has(s.tickerSymbol)) {
+                next.set(s.tickerSymbol, [s.totalScore]);
+              }
+            }
+            return next;
+          });
         },
         error: () => {
           this.error.set('Failed to load momentum data. Is the API running?');
@@ -604,6 +655,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
       });
   }
 
+  getHistory(ticker: string): number[] {
+    return this.scoreHistory().get(ticker) ?? [];
+  }
+  
   loadAlerts(): void {
     this.http.get<any[]>(`${environment.apiUrl}/api/momentum/alerts`)
       .subscribe({
