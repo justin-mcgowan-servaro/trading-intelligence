@@ -6,3 +6,4 @@ docker-compose.override.yml
 appsettings.Development.json
 TradingIntelligence.Api/appsettings.Development.json
 TradingIntelligence.Api/bin/Debug/net10.0/appsettings.Development.json
+/TradingIntelligence.Api/bin
