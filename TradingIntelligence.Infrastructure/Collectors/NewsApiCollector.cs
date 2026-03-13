@@ -33,6 +33,26 @@ public class NewsApiCollector
         { "investor's business daily", 0.9 },
     };
 
+    private static readonly Dictionary<string, string> CompanyToTicker =
+    new(StringComparer.OrdinalIgnoreCase)
+    {
+        { "nvidia",    "NVDA" },
+        { "tesla",     "TSLA" },
+        { "apple",     "AAPL" },
+        { "microsoft", "MSFT" },
+        { "meta",      "META" },
+        { "alphabet",  "GOOGL" },
+        { "google",    "GOOGL" },
+        { "amazon",    "AMZN" },
+        { "netflix",   "NFLX" },
+        { "palantir",  "PLTR" },
+        { "amd",       "AMD"  },
+        { "intel",     "INTC" },
+        { "salesforce","CRM"  },
+        { "coinbase",  "COIN" },
+        { "shopify",   "SHOP" },
+    };
+    
     private static readonly Dictionary<string, int> CatalystKeywords =
         new(StringComparer.OrdinalIgnoreCase)
     {
@@ -110,15 +130,16 @@ public class NewsApiCollector
                         continue;
 
                     var fullText = $"{article.Title} {article.Description}";
-                    var tickers = TickerExtractor.Extract(fullText);
+                    var enrichedText = EnrichWithTickers(fullText);
+                    var tickers = TickerExtractor.Extract(enrichedText);
                     if (!tickers.Any())
                     {
                         _logger.LogDebug("No tickers found in: {Title}", article.Title);
                         continue;
                     }
-                    _logger.LogInformation("Tickers {Tickers} found in: {Title}",
-                        string.Join(",", tickers), article.Title);
-                    if (!tickers.Any()) continue;
+                    _logger.LogInformation(
+                    "Tickers {Tickers} found in: {Title} (enriched text had {Len} chars)",
+                    string.Join(",", tickers), article.Title, enrichedText.Length);
 
                     // Dedup by URL hash
                     var dedupKey = $"newsapi:seen:{article.Url.GetHashCode()}";
@@ -211,5 +232,19 @@ public class NewsApiCollector
 
         return (decimal)Math.Min(20,
             Math.Max(0, Math.Round(rawScore * credibility, 1)));
+    }
+    private static string EnrichWithTickers(string text)
+    {
+        var sb = new System.Text.StringBuilder(text);
+        foreach (var (company, ticker) in CompanyToTicker)
+        {
+            // Check if company name appears in text (case-insensitive)
+            if (text.Contains(company, StringComparison.OrdinalIgnoreCase))
+            {
+                // Append the ticker symbol in $ format (high confidence)
+                sb.Append($" ${ticker}");
+            }
+        }
+        return sb.ToString();
     }
 }
