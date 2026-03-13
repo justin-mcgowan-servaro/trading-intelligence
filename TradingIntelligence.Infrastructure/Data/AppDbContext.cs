@@ -19,6 +19,7 @@ public class AppDbContext : DbContext
     public DbSet<MomentumScore> MomentumScores => Set<MomentumScore>();
     public DbSet<User> Users => Set<User>();
     public DbSet<Watchlist> Watchlists => Set<Watchlist>();
+    public DbSet<OtpCode> OtpCodes => Set<OtpCode>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -70,6 +71,14 @@ public class AppDbContext : DbContext
             e.HasOne(x => x.User)
              .WithMany(u => u.Watchlists)
              .HasForeignKey(x => x.UserId);
+        });
+
+        modelBuilder.Entity<OtpCode>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => x.Email);
+            e.HasIndex(x => x.ExpiresAt); // For cleanup queries
+            e.Property(x => x.Email).HasMaxLength(255).IsRequired();
         });
 
         /// Seed the ticker validation list with common US stocks
