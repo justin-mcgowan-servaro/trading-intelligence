@@ -194,5 +194,33 @@ public class MomentumController : ControllerBase
             currentScore = latestScore.TotalScore
         });
     }
+    // GET /api/momentum/history
+    // Returns last 20 scores per ticker for sparkline seeding on page load
+    [HttpGet("history")]
+    public async Task<IActionResult> GetHistory(CancellationToken cancellationToken)
+    {
+        var latestIds = await _db.MomentumScores
+            .GroupBy(s => s.TickerSymbol)
+            .Select(g => g.OrderByDescending(s => s.ScoredAt)
+                .Take(20)
+                .Select(s => s.Id))
+            .SelectMany(ids => ids)
+            .ToListAsync(cancellationToken);
+    
+        var scores = await _db.MomentumScores
+            .Where(s => latestIds.Contains(s.Id))
+            .OrderBy(s => s.TickerSymbol)
+            .ThenBy(s => s.ScoredAt)
+            .Select(s => new { s.TickerSymbol, s.TotalScore, s.ScoredAt })
+            .ToListAsync(cancellationToken);
+    
+        var grouped = scores
+            .GroupBy(s => s.TickerSymbol)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Select(s => (double)s.TotalScore).ToList());
+    
+        return Ok(grouped);
+    }
 
 }
