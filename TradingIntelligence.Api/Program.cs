@@ -96,7 +96,8 @@ builder.Services.AddScoped<FearGreedCollector>();     // ← add
 builder.Services.AddScoped<GoogleTrendsCollector>();  // ← add
 
 builder.Services.AddScoped<IRealtimeNotifier, SignalRNotifier>();
-
+builder.Services.AddScoped<IPaperTradeService, PaperTradeService>();
+builder.Services.AddSingleton<IPolygonPriceService, PolygonPriceService>();
 // ── Brevo Email Services ───────────────────────────────────────────────────────
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<BrevoEmailService>();
@@ -235,6 +236,17 @@ builder.Services.AddQuartz(q =>
         .ForJob(otpCleanupJobKey)
         .WithIdentity("OtpCleanupTrigger")
         .WithCronSchedule("0 0 * * * ?")); // Every hour
+
+    // Quartz — PaperTradeEvaluatorJob
+    q.AddJob<PaperTradeEvaluatorJob>(j => j.WithIdentity("PaperTradeEvaluatorJob"));
+    q.AddTrigger(t => t
+        .ForJob("PaperTradeEvaluatorJob")
+        .WithIdentity("PaperTradeEvaluator-startup")
+        .StartAt(DateBuilder.FutureDate(180, IntervalUnit.Second)));
+    q.AddTrigger(t => t
+        .ForJob("PaperTradeEvaluatorJob")
+        .WithIdentity("PaperTradeEvaluator-hourly")
+        .WithCronSchedule("0 50 * * * ?")); // every hour at :50
 });
 
 builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
