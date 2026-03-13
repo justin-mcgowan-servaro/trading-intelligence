@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using System.Net.Http.Json;
 using TradingIntelligence.Core.Enums;
 using TradingIntelligence.Core.Interfaces;

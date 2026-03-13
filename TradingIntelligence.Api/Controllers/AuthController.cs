@@ -93,7 +93,7 @@ public class AuthController : ControllerBase
         var otp = GenerateOtp();
         var otpHash = HashOtp(otp);
 
-        var otpEntity = new OtpCode
+        var otpEntity = new Core.Entities.OtpCode
         {
             Email = email,
             CodeHash = otpHash,

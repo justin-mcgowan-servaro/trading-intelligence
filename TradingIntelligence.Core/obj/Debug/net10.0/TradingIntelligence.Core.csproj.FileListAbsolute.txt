@@ -5,8 +5,8 @@ C:\Development\Projects\TradingIntelligence\TradingIntelligence.Core\obj\Debug\n
 C:\Development\Projects\TradingIntelligence\TradingIntelligence.Core\obj\Debug\net10.0\TradingIntelligence.Core.AssemblyInfoInputs.cache
 C:\Development\Projects\TradingIntelligence\TradingIntelligence.Core\obj\Debug\net10.0\TradingIntelligence.Core.AssemblyInfo.cs
 C:\Development\Projects\TradingIntelligence\TradingIntelligence.Core\obj\Debug\net10.0\TradingIntelligence.Core.csproj.CoreCompileInputs.cache
+C:\Development\Projects\TradingIntelligence\TradingIntelligence.Core\obj\Debug\net10.0\TradingIntelligence.Core.sourcelink.json
 C:\Development\Projects\TradingIntelligence\TradingIntelligence.Core\obj\Debug\net10.0\TradingIntelligence.Core.dll
 C:\Development\Projects\TradingIntelligence\TradingIntelligence.Core\obj\Debug\net10.0\refint\TradingIntelligence.Core.dll
 C:\Development\Projects\TradingIntelligence\TradingIntelligence.Core\obj\Debug\net10.0\TradingIntelligence.Core.pdb
 C:\Development\Projects\TradingIntelligence\TradingIntelligence.Core\obj\Debug\net10.0\ref\TradingIntelligence.Core.dll
-C:\Development\Projects\TradingIntelligence\TradingIntelligence.Core\obj\Debug\net10.0\TradingIntelligence.Core.sourcelink.json

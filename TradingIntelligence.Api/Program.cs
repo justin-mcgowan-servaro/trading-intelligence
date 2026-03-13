@@ -128,7 +128,8 @@ builder.Services.AddSingleton<MomentumScoringService>(sp =>
         sp.GetRequiredService<IConfiguration>(),
         sp.GetRequiredService<ILogger<MomentumScoringService>>(),
         sp.GetRequiredService<IRealtimeNotifier>(),
-        sp.GetRequiredService<TelegramAlertService>()));
+        sp.GetRequiredService<TelegramAlertService>(),
+        sp.GetRequiredService<PaperTradeService>()));
 
 // ← This is the line that was missing — registers it as a hosted service
 builder.Services.AddHostedService(sp =>

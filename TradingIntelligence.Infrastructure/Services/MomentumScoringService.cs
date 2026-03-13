@@ -29,6 +29,7 @@ public class MomentumScoringService : BackgroundService
 
     private const decimal MinScoreForAi = 60m;
     private readonly TelegramAlertService _telegram;
+    private readonly IPaperTradeService _paperTradeService;
 
     public MomentumScoringService(
         IConnectionMultiplexer redis,
@@ -37,7 +38,8 @@ public class MomentumScoringService : BackgroundService
         IConfiguration config,
         ILogger<MomentumScoringService> logger,
         IRealtimeNotifier notifier,
-        TelegramAlertService telegram)
+        TelegramAlertService telegram,
+        PaperTradeService paperTradeService)
     {
         _redis = redis;
         _scopeFactory = scopeFactory;
@@ -46,6 +48,7 @@ public class MomentumScoringService : BackgroundService
         _logger = logger;
         _notifier = notifier;
         _telegram = telegram;
+        _paperTradeService = paperTradeService;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -125,12 +128,6 @@ public class MomentumScoringService : BackgroundService
                     totalScore, session,
                     cancellationToken);
             }
-            // Auto paper trade — fires at 65+, only Long or Short bias
-            if (totalScore >= 65 &&
-                (tradeBias == TradeBias.Long || tradeBias == TradeBias.Short))
-            {
-                await _paperTradeService.TryCreateAutoTradeAsync(savedScore);
-            }
 
             // ── Persist to PostgreSQL ────────────────────────────────────
             using var scope = _scopeFactory.CreateScope();
@@ -159,7 +156,12 @@ public class MomentumScoringService : BackgroundService
                 "Saved momentum score for {Ticker} — {Score}/100 {Bias} | SAST: {Time}",
                 ticker, totalScore, tradeBias,
                 MarketSessionHelper.ToSast(DateTime.UtcNow));
-
+            // Auto paper trade — fires at 65+, only Long or Short bias
+            if (totalScore >= 65 &&
+                (tradeBias == TradeBias.Long || tradeBias == TradeBias.Short))
+            {
+                await _paperTradeService.TryCreateAutoTradeAsync(scoreEntity);
+            }
             // ── Publish result to scored-results channel for SignalR ─────
             var pub = _redis.GetSubscriber();
             await pub.PublishAsync(

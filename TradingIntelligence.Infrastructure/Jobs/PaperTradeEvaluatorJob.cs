@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Quartz;
 using TradingIntelligence.Infrastructure.Services;
 

@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using TradingIntelligence.Core.Entities;
 using TradingIntelligence.Core.Enums;
 using TradingIntelligence.Core.Interfaces;

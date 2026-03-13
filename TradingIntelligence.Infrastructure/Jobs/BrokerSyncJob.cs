@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Quartz;
 using TradingIntelligence.Core.Entities;
 using TradingIntelligence.Core.Enums;

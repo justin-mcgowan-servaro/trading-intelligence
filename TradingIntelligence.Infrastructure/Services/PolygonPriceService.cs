@@ -1,3 +1,7 @@
+using Microsoft.Extensions.Configuration;
+using System.Net.Http.Json;
+using TradingIntelligence.Core.Interfaces;
+
 public class PolygonPriceService : IPolygonPriceService
 {
     private readonly HttpClient _http;
