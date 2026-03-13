@@ -33,6 +33,7 @@ import { SparklineComponent } from '../../core/components/sparkline.component';
             }
           </button>
           <span class="timestamp">{{ currentTime() }}</span>
+          <button class="logout-btn" (click)="authService.logout()">Sign out</button>
         </div>
       </div>
 
@@ -401,6 +402,8 @@ import { SparklineComponent } from '../../core/components/sparkline.component';
     .session-badge.open { background: #1a4731; color: #3fb950; }
     .session-badge.pre { background: #1a3a5c; color: #58a6ff; }
     .timestamp { font-size: 13px; color: #8b949e; }
+    .logout-btn { background: none; border: 1px solid #30363d; color: #8b949e; border-radius: 6px; padding: 5px 12px; font-size: 12px; cursor: pointer; transition: color 0.15s, border-color 0.15s; }
+    .logout-btn:hover { color: #e6edf3; border-color: #8b949e; }
 
     /* ── Stats ── */
     .stats-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
