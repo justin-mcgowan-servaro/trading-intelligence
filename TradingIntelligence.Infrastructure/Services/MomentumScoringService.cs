@@ -126,8 +126,8 @@ public class MomentumScoringService : BackgroundService
                     cancellationToken);
             }
             // Auto paper trade — fires at 65+, only Long or Short bias
-            if (result.TotalScore >= 65 &&
-                (result.TradeBias == TradeBias.Long || result.TradeBias == TradeBias.Short))
+            if (totalScore >= 65 &&
+                (tradeBias == TradeBias.Long || tradeBias == TradeBias.Short))
             {
                 await _paperTradeService.TryCreateAutoTradeAsync(savedScore);
             }
