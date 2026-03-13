@@ -20,19 +20,17 @@ export class AuthService {
     this.loadUserFromToken();
   }
 
-  login(email: string, password: string) {
-    return this.http.post<AuthResponse>(
-      `${environment.apiUrl}/api/auth/login`,
-      { email, password }
-    ).pipe(
-      tap(response => this.handleAuthResponse(response))
+  requestOtp(email: string) {
+    return this.http.post<{ message: string }>(
+      `${environment.apiUrl}/api/auth/request-otp`,
+      { email, website: '' } // website = honeypot, always empty
     );
   }
-
-  register(email: string, password: string) {
+  
+  verifyOtp(email: string, code: string) {
     return this.http.post<AuthResponse>(
-      `${environment.apiUrl}/api/auth/register`,
-      { email, password }
+      `${environment.apiUrl}/api/auth/verify-otp`,
+      { email, code }
     ).pipe(
       tap(response => this.handleAuthResponse(response))
     );
