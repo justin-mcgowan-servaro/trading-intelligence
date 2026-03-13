@@ -52,6 +52,7 @@ services:
       - Telegram__BotToken=${TELEGRAM_BOT_TOKEN}
       - Telegram__ChatId=${TELEGRAM_CHAT_ID}
       - GNews__ApiKey=${GNEWS_API_KEY}
+      - Jwt__ExpiryHours=720
     depends_on:
       postgres:
         condition: service_healthy
