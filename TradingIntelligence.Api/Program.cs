@@ -237,7 +237,19 @@ builder.Services.AddQuartz(q =>
         .WithIdentity("OtpCleanupTrigger")
         .WithCronSchedule("0 0 * * * ?")); // Every hour
 
+    var optionsJobKey = new JobKey("OptionsCollectorJob");
+    q.AddJob<OptionsCollectorJob>(opts => opts
+        .WithIdentity(optionsJobKey).StoreDurably());
+    q.AddTrigger(opts => opts
+        .ForJob(optionsJobKey)
+        .WithIdentity("OptionsStartupTrigger")
+        .StartAt(DateBuilder.FutureDate(120, IntervalUnit.Second)));
+    q.AddTrigger(opts => opts
+        .ForJob(optionsJobKey)
+        .WithIdentity("OptionsRecurringTrigger")
+        .WithCronSchedule("0 0 2/4 * * ?")); // 02:00, 06:00, 10:00, 14:00, 18:00, 22:00 UTC
     // Quartz — PaperTradeEvaluatorJob
+    var paperTradeEvaluatorJobKey = new JobKey("PaperTradeEvaluatorJob");
     q.AddJob<PaperTradeEvaluatorJob>(j => j.WithIdentity("PaperTradeEvaluatorJob"));
     q.AddTrigger(t => t
         .ForJob("PaperTradeEvaluatorJob")
