@@ -125,6 +125,12 @@ public class MomentumScoringService : BackgroundService
                     totalScore, session,
                     cancellationToken);
             }
+            // Auto paper trade — fires at 65+, only Long or Short bias
+            if (result.TotalScore >= 65 &&
+                (result.TradeBias == TradeBias.Long || result.TradeBias == TradeBias.Short))
+            {
+                await _paperTradeService.TryCreateAutoTradeAsync(savedScore);
+            }
 
             // ── Persist to PostgreSQL ────────────────────────────────────
             using var scope = _scopeFactory.CreateScope();
