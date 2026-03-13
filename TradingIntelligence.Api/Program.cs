@@ -95,6 +95,8 @@ builder.Services.AddScoped<PolygonCollector>();       // ← add
 builder.Services.AddScoped<FearGreedCollector>();     // ← add
 builder.Services.AddScoped<GoogleTrendsCollector>();  // ← add
 
+builder.Services.AddScoped<OptionsCollector>();
+
 builder.Services.AddScoped<IRealtimeNotifier, SignalRNotifier>();
 builder.Services.AddScoped<IPaperTradeService, PaperTradeService>();
 builder.Services.AddSingleton<IPolygonPriceService, PolygonPriceService>();
