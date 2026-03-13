@@ -5,6 +5,8 @@ import { CommonModule, DecimalPipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { MomentumSignalService, MomentumUpdate } from '../../core/services/momentum-signal.service';
 import { environment } from '../../../environments/environment';
+import { WatchlistService } from '../../core/services/watchlist.service';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -70,6 +72,7 @@ import { environment } from '../../../environments/environment';
           <table class="scores-table">
             <thead>
               <tr>
+                <th class="star-col"></th>
                 <th>Ticker</th>
                 <th>Score</th>
                 <th>Bias</th>
@@ -83,8 +86,17 @@ import { environment } from '../../../environments/environment';
               </tr>
             </thead>
             <tbody>
-              @for (score of scores(); track score.tickerSymbol) {
+              @for (score of sortedScores(); track score.tickerSymbol) {
                 <tr [class]="rowClass(score)" (click)="selectTicker(score.tickerSymbol)">
+                  <td class="star-cell" (click)="$event.stopPropagation()">
+                    @if (authService.isAuthenticated()) {
+                      <button class="star-btn"
+                              [class.starred]="watchlistService.isWatchlisted(score.tickerSymbol)"
+                              (click)="watchlistService.toggle(score.tickerSymbol)">
+                        {{ watchlistService.isWatchlisted(score.tickerSymbol) ? '★' : '☆' }}
+                      </button>
+                    }
+                  </td>
                   <td class="ticker-symbol">{{ score.tickerSymbol }}</td>
                   <td class="score-cell">
                     <div class="score-bar-container">
@@ -142,6 +154,13 @@ import { environment } from '../../../environments/environment';
                   <span class="bias-badge" [class]="biasBadgeClass(tickerDetail()!.latest.tradeBias)">
                     {{ tickerDetail()!.latest.tradeBias }}
                   </span>
+                  @if (authService.isAuthenticated() && selectedTicker()) {
+                    <button class="star-btn modal-star"
+                            [class.starred]="watchlistService.isWatchlisted(selectedTicker()!)"
+                            (click)="watchlistService.toggle(selectedTicker()!)">
+                      {{ watchlistService.isWatchlisted(selectedTicker()!) ? '★ Watchlisted' : '☆ Add to Watchlist' }}
+                    </button>
+                  }
                 }
               </div>
               <button class="modal-close" (click)="closeModal()">✕</button>
@@ -377,7 +396,7 @@ import { environment } from '../../../environments/environment';
     .scores-table tbody tr.strong-signal { background: rgba(63, 185, 80, 0.05); }
     .scores-table tbody tr.watch-signal { background: rgba(210, 153, 34, 0.05); }
     .scores-table td { padding: 12px 16px; font-size: 14px; }
-    .ticker-symbol { font-weight: 700; font-size: 15px; color: #58a6ff; }
+    . { font-weight: 700; font-size: 15px; color: #58a6ff; }
     .score-bar-container { position: relative; background: #21262d; border-radius: 4px; height: 24px; width: 120px; overflow: hidden; }
     .score-bar { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; transition: width 0.5s ease; }
     .score-bar.high { background: linear-gradient(90deg, #1a4731, #3fb950); }
@@ -473,11 +492,49 @@ import { environment } from '../../../environments/environment';
     .alert-bottom { display: flex; justify-content: space-between; }
     .alert-signals { font-size: 12px; color: #8b949e; }
     .alert-time { font-size: 11px; color: #6e7681; white-space: nowrap; }
+
+    .star-col { width: 40px; }
+.star-cell { padding: 0 8px !important; }
+.star-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #6e7681;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+  transition: color 0.15s, transform 0.1s;
+}
+.star-btn:hover { color: #d29922; transform: scale(1.2); }
+.star-btn.starred { color: #d29922; }
+
+.modal-star {
+  font-size: 13px;
+  padding: 5px 14px;
+  border-radius: 20px;
+  border: 1px solid #30363d !important;
+  color: #8b949e !important;
+  background: #21262d !important;
+  font-weight: 600;
+}
+.modal-star.starred {
+  color: #d29922 !important;
+  border-color: #d29922 !important;
+  background: #3d2d00 !important;
+}
+.modal-star:hover { opacity: 0.85; transform: none !important; }
+
+/* Pinned row highlight */
+.scores-table tbody tr.pinned-row {
+  border-left: 2px solid #d29922;
+}
   `]
 })
 export class DashboardComponent implements OnInit, OnDestroy {
   private http = inject(HttpClient);
   signalService = inject(MomentumSignalService);
+  watchlistService = inject(WatchlistService);
+  authService = inject(AuthService);
 
   scores = signal<any[]>([]);
   loading = signal(true);
@@ -522,6 +579,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.loadScores();
     this.loadAlerts();
     this.signalService.connect();
+    this.watchlistService.load();
     setInterval(() => this.currentTime.set(this.getSastTime()), 1000);
     setInterval(() => this.loadScores(), 5 * 60 * 1000);
     setInterval(() => this.loadAlerts(), 2 * 60 * 1000);
@@ -619,10 +677,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   rowClass(score: any): string {
-    if (score.totalScore >= 60) return 'strong-signal';
-    if (score.totalScore >= 40) return 'watch-signal';
-    return '';
+    const pinned = this.watchlistService.isWatchlisted(score.tickerSymbol)
+      ? 'pinned-row ' : '';
+    if (score.totalScore >= 60) return pinned + 'strong-signal';
+    if (score.totalScore >= 40) return pinned + 'watch-signal';
+    return pinned;
   }
+
 
   scoreBarClass(score: number): string {
     if (score >= 60) return 'high';
