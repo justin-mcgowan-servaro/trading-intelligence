@@ -1,0 +1,13 @@
+namespace TradingIntelligence.Core.Entities;
+
+public class OtpCode
+{
+    public int Id { get; set; }
+    public string Email { get; set; } = string.Empty;
+    public string CodeHash { get; set; } = string.Empty;   // SHA-256 of the 6-digit code
+    public int AttemptCount { get; set; } = 0;             // Failed verify attempts
+    public bool Used { get; set; } = false;
+    public DateTime ExpiresAt { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public string? IpAddress { get; set; }
+}
