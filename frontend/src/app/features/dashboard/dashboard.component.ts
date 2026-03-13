@@ -617,6 +617,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadScores();
+    this.loadHistory();
     this.loadAlerts();
     this.signalService.connect();
     this.watchlistService.load();
@@ -629,6 +630,26 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.signalService.disconnect();
   }
 
+  loadHistory(): void {
+    this.http.get<Record<string, number[]>>(`${environment.apiUrl}/api/momentum/history`)
+      .subscribe({
+        next: (data) => {
+          this.scoreHistory.update(map => {
+            const next = new Map(map);
+            for (const [ticker, scores] of Object.entries(data)) {
+              // Merge with any live points already accumulated
+              const existing = next.get(ticker) ?? [];
+              const merged = [...scores, ...existing]
+                .slice(-20);
+              next.set(ticker, merged);
+            }
+            return next;
+          });
+        },
+        error: () => {}
+      });
+  }
+  
   loadScores(): void {
     this.http.get<any>(`${environment.apiUrl}/api/momentum/top?limit=20`)
       .subscribe({
@@ -683,6 +704,20 @@ export class DashboardComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (detail) => {
           this.tickerDetail.set(detail);
+          // Seed sparkline from DB history if we have richer data
+          if (detail?.history?.length > 1) {
+            this.scoreHistory.update(map => {
+              const next = new Map(map);
+              const dbPoints = [...detail.history]
+                .reverse() // history comes back newest-first
+                .map((h: any) => Number(h.totalScore));
+              const existing = next.get(ticker) ?? [];
+              // DB points as base, live SignalR points on top
+              const merged = [...dbPoints, ...existing].slice(-20);
+              next.set(ticker, merged);
+              return next;
+            });
+          }
           this.tickerLoading.set(false);
           // Auto-switch to analysis tab if AI analysis exists
           if (detail?.latest?.aiAnalysis) {
