@@ -1,5 +1,6 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router';
 import { tap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
@@ -11,22 +12,24 @@ export interface AuthResponse {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
+  private http = inject(HttpClient);
+  private router = inject(Router);
   private readonly TOKEN_KEY = 'ti_token';
 
   isAuthenticated = signal<boolean>(this.hasValidToken());
   currentUser = signal<{ email: string; tier: string } | null>(null);
 
-  constructor(private http: HttpClient) {
+  constructor() {
     this.loadUserFromToken();
   }
 
   requestOtp(email: string) {
     return this.http.post<{ message: string }>(
       `${environment.apiUrl}/api/auth/request-otp`,
-      { email, website: '' } // website = honeypot, always empty
+      { email, website: '' }
     );
   }
-  
+
   verifyOtp(email: string, code: string) {
     return this.http.post<AuthResponse>(
       `${environment.apiUrl}/api/auth/verify-otp`,
@@ -40,6 +43,7 @@ export class AuthService {
     localStorage.removeItem(this.TOKEN_KEY);
     this.isAuthenticated.set(false);
     this.currentUser.set(null);
+    this.router.navigate(['/login']);
   }
 
   getToken(): string | null {
@@ -58,9 +62,7 @@ export class AuthService {
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
       return payload.exp * 1000 > Date.now();
-    } catch {
-      return false;
-    }
+    } catch { return false; }
   }
 
   private loadUserFromToken(): void {
