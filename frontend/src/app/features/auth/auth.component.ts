@@ -2,6 +2,8 @@ import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
+import { Router } from '@angular/router';
+
 
 type Step = 'email' | 'otp' | 'success';
 
@@ -97,7 +99,7 @@ export class AuthComponent {
   otp = '';
   honeypot = ''; // Never shown to user — if filled, bot detected server-side
 
-  constructor(auth: AuthService) {
+  constructor(private auth: AuthService, private router: Router) {
     this.authService = auth;
   }
 
@@ -132,7 +134,7 @@ export class AuthComponent {
         next: () => {
           this.loading.set(false);
           this.step.set('success');
-          setTimeout(() => window.location.reload(), 800);
+          setTimeout(() => this.router.navigate(['/']), 800);
         },
         error: (err) => {
           this.loading.set(false);
