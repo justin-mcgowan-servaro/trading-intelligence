@@ -150,5 +150,49 @@ public class MomentumController : ControllerBase
         var alerts = await TelegramAlertService.GetRecentAlertsAsync(db);
         return Ok(alerts);
     }
+    // POST /api/momentum/{ticker}/analyze
+    // Triggers on-demand GPT-4o analysis for a ticker (uses cached score + live buffer)
+    [HttpPost("{ticker}/analyze")]
+    public async Task<IActionResult> AnalyzeTicker(
+        string ticker,
+        CancellationToken cancellationToken = default)
+    {
+        ticker = ticker.ToUpperInvariant();
+    
+        // Get latest saved score
+        var latestScore = await _db.MomentumScores
+            .Where(s => s.TickerSymbol == ticker)
+            .OrderByDescending(s => s.ScoredAt)
+            .FirstOrDefaultAsync(cancellationToken);
+    
+        if (latestScore == null)
+            return NotFound(new { message = $"No score data found for {ticker}" });
+    
+        // If AI analysis already exists and is recent (< 30 min), return cached
+        if (!string.IsNullOrEmpty(latestScore.AiAnalysis) &&
+            latestScore.ScoredAt > DateTime.UtcNow.AddMinutes(-30))
+        {
+            return Ok(new
+            {
+                ticker,
+                cached = true,
+                aiAnalysis = latestScore.AiAnalysis,
+                score = latestScore.TotalScore,
+                scoredAt = MarketSessionHelper.ToSast(latestScore.ScoredAt)
+            });
+        }
+    
+        // Otherwise trigger fresh analysis via Redis (same path as normal scoring)
+        var pub = _redis.GetSubscriber();
+        await pub.PublishAsync(RedisChannel.Literal("scored-signals"), ticker);
+    
+        return Accepted(new
+        {
+            ticker,
+            cached = false,
+            message = "Analysis triggered — check back in a few seconds",
+            currentScore = latestScore.TotalScore
+        });
+    }
 
 }
