@@ -20,6 +20,8 @@ public class AppDbContext : DbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<Watchlist> Watchlists => Set<Watchlist>();
     public DbSet<OtpCode> OtpCodes => Set<OtpCode>();
+    public DbSet<PaperTrade> PaperTrades => Set<PaperTrade>();
+    public DbSet<SignalAccuracy> SignalAccuracies => Set<SignalAccuracy>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -80,6 +82,14 @@ public class AppDbContext : DbContext
             e.HasIndex(x => x.ExpiresAt); // For cleanup queries
             e.Property(x => x.Email).HasMaxLength(255).IsRequired();
         });
+
+        modelBuilder.Entity<SignalAccuracy>()
+        .HasIndex(s => s.TickerSymbol)
+        .IsUnique();
+    
+    modelBuilder.Entity<PaperTrade>()
+        .HasIndex(p => p.MomentumScoreId)
+        .IsUnique(); // one trade per scoring event
 
         /// Seed the ticker validation list with common US stocks
         modelBuilder.Entity<Ticker>().HasData(
