@@ -97,6 +97,11 @@ builder.Services.AddScoped<GoogleTrendsCollector>();  // ← add
 
 builder.Services.AddScoped<IRealtimeNotifier, SignalRNotifier>();
 
+// ── Brevo Email Services ───────────────────────────────────────────────────────
+builder.Services.AddMemoryCache();
+builder.Services.AddScoped<BrevoEmailService>();
+builder.Services.AddHttpClient("Brevo");
+
 // ── Background Services ───────────────────────────────────────────────────────
 builder.Services.AddSingleton<SignalAggregatorService>();
 builder.Services.AddHostedService(sp =>
@@ -223,6 +228,13 @@ builder.Services.AddQuartz(q =>
         .ForJob(morningBriefingJobKey)
         .WithIdentity("MorningBriefingTrigger")
         .WithCronSchedule("0 0 4 * * ?"));
+
+    var otpCleanupJobKey = new JobKey("OtpCleanupJob");
+    q.AddJob<OtpCleanupJob>(opts => opts.WithIdentity(otpCleanupJobKey));
+    q.AddTrigger(opts => opts
+        .ForJob(otpCleanupJobKey)
+        .WithIdentity("OtpCleanupTrigger")
+        .WithCronSchedule("0 0 * * * ?")); // Every hour
 });
 
 builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
