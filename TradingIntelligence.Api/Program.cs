@@ -73,6 +73,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddAuthorization();
+builder.Services.AddHttpClient();
 // ── HttpClients ───────────────────────────────────────────────────────────────
 builder.Services.AddHttpClient("Reddit");
 builder.Services.AddHttpClient("StockTwits");
@@ -99,6 +100,7 @@ builder.Services.AddScoped<OptionsCollector>();
 
 builder.Services.AddScoped<IRealtimeNotifier, SignalRNotifier>();
 builder.Services.AddScoped<IPaperTradeService, PaperTradeService>();
+builder.Services.AddScoped<IMt5BridgeService, Mt5BridgeService>();
 builder.Services.AddSingleton<IPolygonPriceService, PolygonPriceService>();
 // ── Brevo Email Services ───────────────────────────────────────────────────────
 builder.Services.AddMemoryCache();
@@ -261,6 +263,17 @@ builder.Services.AddQuartz(q =>
         .ForJob("PaperTradeEvaluatorJob")
         .WithIdentity("PaperTradeEvaluator-hourly")
         .WithCronSchedule("0 50 * * * ?")); // every hour at :50
+
+    var brokerSyncJobKey = new JobKey("BrokerSyncJob");
+    q.AddJob<BrokerSyncJob>(j => j.WithIdentity(brokerSyncJobKey).StoreDurably());
+    q.AddTrigger(t => t
+        .ForJob(brokerSyncJobKey)
+        .WithIdentity("BrokerSync-startup")
+        .StartAt(DateBuilder.FutureDate(210, IntervalUnit.Second)));
+    q.AddTrigger(t => t
+        .ForJob(brokerSyncJobKey)
+        .WithIdentity("BrokerSync-hourly")
+        .WithCronSchedule("0 55 * * * ?"));
 });
 
 builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);

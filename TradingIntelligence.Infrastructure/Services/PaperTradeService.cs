@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TradingIntelligence.Core.Entities;
 using TradingIntelligence.Core.Enums;
+using TradingIntelligence.Core.Interfaces;
 using TradingIntelligence.Infrastructure.Data;
 
 namespace TradingIntelligence.Infrastructure.Services;
@@ -9,19 +10,28 @@ public interface IPaperTradeService
 {
     Task TryCreateAutoTradeAsync(MomentumScore score);
     Task EvaluateOpenTradesAsync();
+    Task UpdateSignalAccuracyAsync(PaperTrade trade);
 }
 
 public class PaperTradeService : IPaperTradeService
 {
     private readonly AppDbContext _db;
     private readonly IPolygonPriceService _polygon;
+    private readonly IMt5BridgeService _mt5Bridge;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<PaperTradeService> _logger;
 
-    public PaperTradeService(AppDbContext db, IPolygonPriceService polygon,
+    public PaperTradeService(
+        AppDbContext db,
+        IPolygonPriceService polygon,
+        IMt5BridgeService mt5Bridge,
+        IConfiguration configuration,
         ILogger<PaperTradeService> logger)
     {
         _db = db;
         _polygon = polygon;
+        _mt5Bridge = mt5Bridge;
+        _configuration = configuration;
         _logger = logger;
     }
 
@@ -56,7 +66,29 @@ public class PaperTradeService : IPaperTradeService
 
         _db.PaperTrades.Add(trade);
         await _db.SaveChangesAsync();
-        _logger.LogInformation("PaperTrade opened: {Ticker} {Direction} @ {Price}", 
+
+        var lotSize = _configuration.GetValue<decimal?>("Trading:DefaultLotSize") ?? 0.01m;
+        var ticket = await _mt5Bridge.PlaceOrderAsync(trade.TickerSymbol, trade.Direction, lotSize);
+        if (ticket is not null)
+        {
+            _db.BrokerTrades.Add(new BrokerTrade
+            {
+                PaperTradeId = trade.Id,
+                Mt5Ticket = ticket.Value,
+                Mt5Symbol = trade.TickerSymbol,
+                LotSize = lotSize,
+                BrokerStatus = BrokerStatus.Pending,
+                Direction = trade.Direction,
+                OpenedAt = DateTime.UtcNow
+            });
+            await _db.SaveChangesAsync();
+        }
+        else
+        {
+            _logger.LogWarning("MT5 order skipped for {Ticker} — bridge unavailable", trade.TickerSymbol);
+        }
+
+        _logger.LogInformation("PaperTrade opened: {Ticker} {Direction} @ {Price}",
             trade.TickerSymbol, direction, price);
     }
 
@@ -113,7 +145,7 @@ public class PaperTradeService : IPaperTradeService
         await _db.SaveChangesAsync();
     }
 
-    private async Task UpdateSignalAccuracyAsync(PaperTrade trade)
+    public async Task UpdateSignalAccuracyAsync(PaperTrade trade)
     {
         if (trade.Outcome == TradeOutcome.Pending) return;
 
@@ -124,8 +156,8 @@ public class PaperTradeService : IPaperTradeService
         var isNew = acc.Id == 0;
 
         acc.TotalTrades++;
-        if (trade.Outcome == TradeOutcome.Win)        acc.Wins++;
-        else if (trade.Outcome == TradeOutcome.Loss)  acc.Losses++;
+        if (trade.Outcome == TradeOutcome.Win) acc.Wins++;
+        else if (trade.Outcome == TradeOutcome.Loss) acc.Losses++;
         else if (trade.Outcome == TradeOutcome.Breakeven) acc.Breakevens++;
 
         acc.WinRate = acc.TotalTrades > 0

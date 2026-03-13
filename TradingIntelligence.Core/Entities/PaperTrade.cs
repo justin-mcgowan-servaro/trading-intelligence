@@ -21,4 +21,5 @@ public class PaperTrade
     public decimal? PnlPercent { get; set; }
     public TradeOutcome Outcome { get; set; } = TradeOutcome.Pending;
     public string? Notes { get; set; }
+    public BrokerTrade? BrokerTrade { get; set; }
 }
