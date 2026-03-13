@@ -62,6 +62,17 @@ services:
     networks:
       - trading-net
 
+  mt5-bridge:
+    build: ./mt5_bridge
+    ports: []
+    networks:
+      - trading-net
+    environment:
+      - MT5_LOGIN=${MT5_LOGIN}
+      - MT5_PASSWORD=${MT5_PASSWORD}
+      - MT5_SERVER=${MT5_SERVER}
+    restart: unless-stopped
+
   frontend:
     build:
       context: ./frontend

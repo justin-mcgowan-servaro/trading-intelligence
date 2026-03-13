@@ -22,6 +22,7 @@ public class AppDbContext : DbContext
     public DbSet<OtpCode> OtpCodes => Set<OtpCode>();
     public DbSet<PaperTrade> PaperTrades => Set<PaperTrade>();
     public DbSet<SignalAccuracy> SignalAccuracies => Set<SignalAccuracy>();
+    public DbSet<BrokerTrade> BrokerTrades => Set<BrokerTrade>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -87,9 +88,21 @@ public class AppDbContext : DbContext
         .HasIndex(s => s.TickerSymbol)
         .IsUnique();
     
-    modelBuilder.Entity<PaperTrade>()
-        .HasIndex(p => p.MomentumScoreId)
-        .IsUnique(); // one trade per scoring event
+
+        modelBuilder.Entity<PaperTrade>()
+            .HasIndex(p => p.MomentumScoreId)
+            .IsUnique(); // one trade per scoring event
+
+        modelBuilder.Entity<BrokerTrade>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => x.PaperTradeId).IsUnique();
+            e.HasIndex(x => x.BrokerStatus);
+            e.Property(x => x.Mt5Symbol).HasMaxLength(50).IsRequired();
+            e.HasOne(x => x.PaperTrade)
+                .WithOne(x => x.BrokerTrade)
+                .HasForeignKey<BrokerTrade>(x => x.PaperTradeId);
+        });
 
         /// Seed the ticker validation list with common US stocks
         modelBuilder.Entity<Ticker>().HasData(
