@@ -101,16 +101,15 @@ public class NewsApiCollector
         // Search for financial market news
         var queries = new[]
         {
-            "NVDA nvidia earnings",
-            "TSLA tesla stock",
-            "AAPL apple earnings",
-            "META earnings revenue",
-            "stock market earnings beat",
-            "merger acquisition deal nasdaq",
-            "FDA approval stock",
-            "analyst upgrade downgrade price target"
+            "Nvidia NVDA earnings revenue",
+            "Tesla TSLA earnings delivery",
+            "Apple AAPL earnings iPhone",
+            "Meta earnings revenue advertising",
+            "Microsoft MSFT earnings cloud",
+            "stock earnings beat miss analyst upgrade downgrade",
+            "merger acquisition deal",
+            "FDA approval rejection biotech",
         };
-
         foreach (var query in queries)
         {
             if (cancellationToken.IsCancellationRequested) break;
