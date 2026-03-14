@@ -88,14 +88,22 @@ public class TelegramAlertService
             🔗 [View Dashboard](https://servaro.co.za)
             """;
 
-        await SendMessageAsync(botToken, chatId, message, cancellationToken);
+        var sent = await SendMessageAsync(botToken, chatId, message, cancellationToken);
 
-        // Cache alert in Redis for dashboard notifications
-        await CacheAlertAsync(db, result);
+        if (sent)
+        {
+            // Cache alert in Redis for dashboard notifications
+            await CacheAlertAsync(db, result);
 
-        _logger.LogInformation(
-            "Telegram alert sent for {Ticker} — {Score}/100",
-            result.TickerSymbol, result.TotalScore);
+            _logger.LogInformation(
+                "Telegram alert sent for {Ticker} — {Score}/100",
+                result.TickerSymbol, result.TotalScore);
+            return;
+        }
+
+        _logger.LogWarning(
+            "Telegram alert failed for {Ticker} — not caching alert",
+            result.TickerSymbol);
     }
 
     public async Task SendMorningBriefingAsync(
@@ -114,42 +122,59 @@ public class TelegramAlertService
 
             """;
 
-        await SendMessageAsync(
+        var sent = await SendMessageAsync(
             botToken, chatId,
             header + briefingText,
             cancellationToken);
 
-        _logger.LogInformation("Morning briefing sent to Telegram");
+        if (sent)
+        {
+            _logger.LogInformation("Morning briefing sent to Telegram");
+            return;
+        }
+
+        _logger.LogWarning("Morning briefing failed to send to Telegram");
     }
 
-    private async Task SendMessageAsync(
+    private async Task<bool> SendMessageAsync(
         string botToken,
         string chatId,
         string message,
         CancellationToken cancellationToken)
     {
-        var url = $"https://api.telegram.org/bot{botToken}/sendMessage";
-
-        var payload = JsonSerializer.Serialize(new
+        try
         {
-            chat_id = chatId,
-            text = message,
-            parse_mode = "Markdown",
-            disable_web_page_preview = false
-        });
+            var url = $"https://api.telegram.org/bot{botToken}/sendMessage";
 
-        var content = new StringContent(
-            payload, Encoding.UTF8, "application/json");
+            var payload = JsonSerializer.Serialize(new
+            {
+                chat_id = chatId,
+                text = message,
+                parse_mode = "Markdown",
+                disable_web_page_preview = false
+            });
 
-        var response = await _httpClient.PostAsync(
-            url, content, cancellationToken);
+            var content = new StringContent(
+                payload, Encoding.UTF8, "application/json");
 
-        if (!response.IsSuccessStatusCode)
-        {
+            var response = await _httpClient.PostAsync(
+                url, content, cancellationToken);
+
+            if (response.IsSuccessStatusCode)
+            {
+                return true;
+            }
+
             var error = await response.Content.ReadAsStringAsync(cancellationToken);
             _logger.LogError(
                 "Telegram API error: {Status} — {Error}",
                 response.StatusCode, error);
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Telegram message send failed with exception");
+            return false;
         }
     }
 
