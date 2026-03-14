@@ -382,7 +382,7 @@
         }
       }
     },
-    "/health": {
+    "/api/health": {
       "get": {
         "tags": [
           "TradingIntelligence.Api"

@@ -24,7 +24,8 @@ public class SignalAggregatorService : BackgroundService
     private readonly ConcurrentDictionary<string, DateTime> _lastScored = new();
 
     // Minimum time between scoring the same ticker (30 minutes)
-    private static readonly TimeSpan ScoringCooldown = TimeSpan.FromMinutes(30);
+    //private static readonly TimeSpan ScoringCooldown = TimeSpan.FromMinutes(30);
+    private static readonly TimeSpan ScoringCooldown = TimeSpan.FromSeconds(20);
 
     public SignalAggregatorService(
         IConnectionMultiplexer redis,
