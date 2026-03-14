@@ -15,7 +15,6 @@ public class NewsApiCollector
     private readonly ILogger<NewsApiCollector> _logger;
     private readonly HttpClient _httpClient;
 
-    // High credibility financial sources on NewsAPI
     private static readonly Dictionary<string, double> SourceCredibility =
         new(StringComparer.OrdinalIgnoreCase)
     {
@@ -34,7 +33,7 @@ public class NewsApiCollector
     };
 
     private static readonly Dictionary<string, string> CompanyToTicker =
-    new(StringComparer.OrdinalIgnoreCase)
+        new(StringComparer.OrdinalIgnoreCase)
     {
         { "nvidia",    "NVDA" },
         { "tesla",     "TSLA" },
@@ -52,7 +51,7 @@ public class NewsApiCollector
         { "coinbase",  "COIN" },
         { "shopify",   "SHOP" },
     };
-    
+
     private static readonly Dictionary<string, int> CatalystKeywords =
         new(StringComparer.OrdinalIgnoreCase)
     {
@@ -98,7 +97,6 @@ public class NewsApiCollector
         var pub = _redis.GetSubscriber();
         int totalPublished = 0;
 
-        // Search for financial market news
         var queries = new[]
         {
             "Nvidia NVDA earnings revenue",
@@ -110,6 +108,7 @@ public class NewsApiCollector
             "merger acquisition deal",
             "FDA approval rejection biotech",
         };
+
         foreach (var query in queries)
         {
             if (cancellationToken.IsCancellationRequested) break;
@@ -126,25 +125,28 @@ public class NewsApiCollector
                 foreach (var article in articles)
                 {
                     if (article.PublishedAtParsed < DateTime.UtcNow.AddHours(-72))
-                        continue;
-                    if (article.PublishedAtParsed < DateTime.UtcNow.AddHours(-72))
                     {
-                        _logger.LogInformation("Skipping old article ({Age:F0}hrs): {Title}",
+                        _logger.LogInformation(
+                            "Skipping old article ({Age:F0}hrs): {Title}",
                             (DateTime.UtcNow - article.PublishedAtParsed).TotalHours,
                             article.Title);
                         continue;
                     }
+
                     var fullText = $"{article.Title} {article.Description}";
                     var enrichedText = EnrichWithTickers(fullText);
                     var tickers = TickerExtractor.Extract(enrichedText);
-                    if (!tickers.Any())
-                    {
-                        _logger.LogDebug("No tickers found in: {Title}", article.Title);
-                        continue;
-                    }
+
+                    // Temporary diagnostic logging
                     _logger.LogInformation(
-                    "Tickers {Tickers} found in: {Title} (enriched text had {Len} chars)",
-                    string.Join(",", tickers), article.Title, enrichedText.Length);
+                        "Article: '{Title}' | Appended: '{Appended}' | Tickers: [{Tickers}]",
+                        article.Title,
+                        enrichedText.Length > fullText.Length
+                            ? enrichedText.Substring(fullText.Length).Trim()
+                            : "NONE",
+                        string.Join(",", tickers));
+
+                    if (!tickers.Any()) continue;
 
                     // Dedup by URL hash
                     var dedupKey = $"newsapi:seen:{article.Url.GetHashCode()}";
@@ -185,6 +187,10 @@ public class NewsApiCollector
                         RedisChannel.Literal("raw-signals"), payload);
 
                     totalPublished++;
+
+                    _logger.LogInformation(
+                        "Published signal for {Tickers} — {Title}",
+                        string.Join(",", tickers), article.Title);
                 }
 
                 await Task.Delay(1000, cancellationToken);
@@ -202,9 +208,9 @@ public class NewsApiCollector
     }
 
     private async Task<List<NewsApiArticle>> FetchArticlesAsync(
-    string query,
-    string apiKey,
-    CancellationToken cancellationToken)
+        string query,
+        string apiKey,
+        CancellationToken cancellationToken)
     {
         var url = $"https://gnews.io/api/v4/search" +
                   $"?q={Uri.EscapeDataString(query)}" +
@@ -219,16 +225,16 @@ public class NewsApiCollector
 
         return result?.Articles ?? new List<NewsApiArticle>();
     }
+
     private static double GetSourceCredibility(string sourceName)
     {
         foreach (var (key, value) in SourceCredibility)
             if (sourceName.Contains(key, StringComparison.OrdinalIgnoreCase))
                 return value;
-        return 0.6; // Default credibility for unknown sources
+        return 0.6;
     }
 
-    private static decimal CalculateCatalystScore(
-        string text, double credibility)
+    private static decimal CalculateCatalystScore(string text, double credibility)
     {
         int rawScore = 5;
         foreach (var (keyword, score) in CatalystKeywords)
@@ -238,18 +244,13 @@ public class NewsApiCollector
         return (decimal)Math.Min(20,
             Math.Max(0, Math.Round(rawScore * credibility, 1)));
     }
+
     private static string EnrichWithTickers(string text)
     {
         var sb = new System.Text.StringBuilder(text);
         foreach (var (company, ticker) in CompanyToTicker)
-        {
-            // Check if company name appears in text (case-insensitive)
             if (text.Contains(company, StringComparison.OrdinalIgnoreCase))
-            {
-                // Append the ticker symbol in $ format (high confidence)
                 sb.Append($" ${ticker}");
-            }
-        }
         return sb.ToString();
     }
 }
