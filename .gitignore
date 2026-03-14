@@ -7,3 +7,4 @@ appsettings.Development.json
 TradingIntelligence.Api/appsettings.Development.json
 TradingIntelligence.Api/bin/Debug/net10.0/appsettings.Development.json
 /TradingIntelligence.Api/bin
+/TradingIntelligence.Api/bin

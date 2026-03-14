@@ -19,7 +19,7 @@ public class AppDbContext : DbContext
     public DbSet<MomentumScore> MomentumScores => Set<MomentumScore>();
     public DbSet<User> Users => Set<User>();
     public DbSet<Watchlist> Watchlists => Set<Watchlist>();
-    public DbSet<TradingIntelligence.Core.Entities.OtpCode> OtpCodes => Set<TradingIntelligence.Core.Entities.OtpCode>();
+    public DbSet<OtpCode> OtpCodes => Set<OtpCode>();
     public DbSet<PaperTrade> PaperTrades => Set<PaperTrade>();
     public DbSet<SignalAccuracy> SignalAccuracies => Set<SignalAccuracy>();
     public DbSet<BrokerTrade> BrokerTrades => Set<BrokerTrade>();
