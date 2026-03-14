@@ -5,7 +5,6 @@ using TradingIntelligence.Core.Entities;
 using TradingIntelligence.Core.Enums;
 using TradingIntelligence.Core.Interfaces;
 using TradingIntelligence.Infrastructure.Data;
-using TradingIntelligence.Infrastructure.Services;
 
 namespace TradingIntelligence.Infrastructure.Jobs;
 

@@ -14,11 +14,13 @@ public class TradesController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly IMt5BridgeService _mt5Bridge;
+    private readonly IPaperTradeService _paperTradeService;
 
-    public TradesController(AppDbContext db, IMt5BridgeService mt5Bridge)
+    public TradesController(AppDbContext db, IMt5BridgeService mt5Bridge, IPaperTradeService paperTradeService)
     {
         _db = db;
         _mt5Bridge = mt5Bridge;
+        _paperTradeService = paperTradeService;
     }
 
     [HttpGet("paper")]
@@ -63,6 +65,7 @@ public class TradesController : ControllerBase
         trade.Status = TradeStatus.Closed;
         trade.ClosedAt = DateTime.UtcNow;
         trade.Outcome = TradeOutcome.Breakeven;
+        await _paperTradeService.UpdateSignalAccuracyAsync(trade);
         await _db.SaveChangesAsync();
         return Ok(trade);
     }

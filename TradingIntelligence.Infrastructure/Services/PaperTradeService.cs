@@ -8,13 +8,6 @@ using TradingIntelligence.Infrastructure.Data;
 
 namespace TradingIntelligence.Infrastructure.Services;
 
-public interface IPaperTradeService
-{
-    Task TryCreateAutoTradeAsync(MomentumScore score);
-    Task EvaluateOpenTradesAsync();
-    Task UpdateSignalAccuracyAsync(PaperTrade trade);
-}
-
 public class PaperTradeService : IPaperTradeService
 {
     private readonly AppDbContext _db;
@@ -22,6 +15,9 @@ public class PaperTradeService : IPaperTradeService
     private readonly IMt5BridgeService _mt5Bridge;
     private readonly IConfiguration _configuration;
     private readonly ILogger<PaperTradeService> _logger;
+    private readonly int _expiryHours;
+    private readonly decimal _winThreshold;
+    private readonly decimal _lossThreshold;
 
     public PaperTradeService(
         AppDbContext db,
@@ -35,6 +31,9 @@ public class PaperTradeService : IPaperTradeService
         _mt5Bridge = mt5Bridge;
         _configuration = configuration;
         _logger = logger;
+        _expiryHours = _configuration.GetValue<int?>("PaperTrade:ExpiryHours") ?? 72;
+        _winThreshold = _configuration.GetValue<decimal?>("PaperTrade:WinThreshold") ?? 1.0m;
+        _lossThreshold = _configuration.GetValue<decimal?>("PaperTrade:LossThreshold") ?? -1.0m;
     }
 
     public async Task TryCreateAutoTradeAsync(MomentumScore score)
@@ -102,8 +101,8 @@ public class PaperTradeService : IPaperTradeService
 
         foreach (var trade in openTrades)
         {
-            // Expire trades older than 72 hours
-            if (DateTime.UtcNow - trade.OpenedAt > TimeSpan.FromHours(72))
+            // Expire trades older than configured threshold
+            if (DateTime.UtcNow - trade.OpenedAt > TimeSpan.FromHours(_expiryHours))
             {
                 trade.Status = TradeStatus.Expired;
                 trade.ClosedAt = DateTime.UtcNow;
@@ -127,14 +126,14 @@ public class PaperTradeService : IPaperTradeService
             trade.PnlPercent = pnlPct;
 
             // Only close and record outcome at thresholds
-            if (pnlPct >= 1m)
+            if (pnlPct >= _winThreshold)
             {
                 trade.Status = TradeStatus.Closed;
                 trade.ClosedAt = DateTime.UtcNow;
                 trade.Outcome = TradeOutcome.Win;
                 await UpdateSignalAccuracyAsync(trade);
             }
-            else if (pnlPct <= -1m)
+            else if (pnlPct <= _lossThreshold)
             {
                 trade.Status = TradeStatus.Closed;
                 trade.ClosedAt = DateTime.UtcNow;

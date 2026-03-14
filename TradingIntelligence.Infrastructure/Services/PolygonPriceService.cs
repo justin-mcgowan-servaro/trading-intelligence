@@ -1,19 +1,24 @@
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using System.Net.Http.Json;
 using TradingIntelligence.Core.Interfaces;
+
+namespace TradingIntelligence.Infrastructure.Services;
 
 public class PolygonPriceService : IPolygonPriceService
 {
     private readonly HttpClient _http;
     private readonly string _apiKey;
+    private readonly ILogger<PolygonPriceService> _logger;
     private static readonly SemaphoreSlim _throttle = new(1, 1);
     private static DateTime _lastCall = DateTime.MinValue;
     private const int DelayMs = 13000;
 
-    public PolygonPriceService(IHttpClientFactory factory, IConfiguration config)
+    public PolygonPriceService(IHttpClientFactory factory, IConfiguration config, ILogger<PolygonPriceService> logger)
     {
         _http = factory.CreateClient();
         _apiKey = config["Polygon:ApiKey"]!;
+        _logger = logger;
     }
 
     public async Task<decimal?> GetLastPriceAsync(string ticker)
@@ -28,11 +33,17 @@ public class PolygonPriceService : IPolygonPriceService
             var response = await _http.GetFromJsonAsync<PolygonLastTradeResponse>(url);
             _lastCall = DateTime.UtcNow;
 
-            return response?.Results?.P;
+            if (response?.Results is null || response.Results.P <= 0)
+            {
+                _logger.LogWarning("Polygon price response invalid for {Ticker}", ticker);
+                return null;
+            }
+
+            return response.Results.P;
         }
         catch (Exception ex)
         {
-            // log and return null — don't crash the evaluator
+            _logger.LogWarning(ex, "Polygon price lookup failed for {Ticker}", ticker);
             return null;
         }
         finally
