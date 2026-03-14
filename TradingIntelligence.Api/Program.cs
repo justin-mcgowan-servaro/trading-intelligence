@@ -91,10 +91,10 @@ builder.Services.AddScoped<RedditCollector>();
 builder.Services.AddScoped<StockTwitsCollector>();
 builder.Services.AddScoped<NewsCollector>();
 builder.Services.AddScoped<VolumeCollector>();
-builder.Services.AddScoped<NewsApiCollector>();       // ← add
-builder.Services.AddScoped<PolygonCollector>();       // ← add
-builder.Services.AddScoped<FearGreedCollector>();     // ← add
-builder.Services.AddScoped<GoogleTrendsCollector>();  // ← add
+builder.Services.AddScoped<NewsApiCollector>();
+builder.Services.AddScoped<PolygonCollector>();
+builder.Services.AddScoped<FearGreedCollector>(); 
+builder.Services.AddScoped<GoogleTrendsCollector>();
 
 builder.Services.AddScoped<OptionsCollector>();
 
@@ -332,7 +332,7 @@ app.MapControllers();
 app.MapHub<MomentumHub>("/hubs/momentum");
 
 // ── Health endpoint ───────────────────────────────────────────────────────────
-app.MapGet("/health", (SignalAggregatorService aggregator) => Results.Ok(new
+app.MapGet("/api/health", (SignalAggregatorService aggregator) => Results.Ok(new
 {
     status = "healthy",
     timestamp = DateTime.UtcNow,
