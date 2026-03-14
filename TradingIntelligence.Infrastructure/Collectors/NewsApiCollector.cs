@@ -124,7 +124,7 @@ public class NewsApiCollector
 
                 foreach (var article in articles)
                 {
-                    if (article.PublishedAtParsed < DateTime.UtcNow.AddHours(-72))
+                    if (article.PublishedAtParsed < DateTime.UtcNow.AddHours(-24))
                     {
                         _logger.LogInformation(
                             "Skipping old article ({Age:F0}hrs): {Title}",
@@ -208,13 +208,18 @@ public class NewsApiCollector
     }
 
     private async Task<List<NewsApiArticle>> FetchArticlesAsync(
-        string query,
-        string apiKey,
-        CancellationToken cancellationToken)
+    string query,
+    string apiKey,
+    CancellationToken cancellationToken)
     {
+        // Force GNews to only return articles from last 24 hours
+        var from = DateTime.UtcNow.AddHours(-24).ToString("yyyy-MM-ddTHH:mm:ssZ");
+
         var url = $"https://gnews.io/api/v4/search" +
                   $"?q={Uri.EscapeDataString(query)}" +
                   $"&lang=en&country=us&max=10" +
+                  $"&from={Uri.EscapeDataString(from)}" +
+                  $"&sortby=publishedAt" +
                   $"&apikey={apiKey}";
 
         var response = await _httpClient.GetAsync(url, cancellationToken);
