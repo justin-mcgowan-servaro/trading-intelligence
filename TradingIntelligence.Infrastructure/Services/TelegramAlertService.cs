@@ -46,12 +46,11 @@ public class TelegramAlertService
             return;
         }
 
-        // Dedup — one alert per ticker per 2 hours
         var db = _redis.GetDatabase();
-        var dedupKey = $"telegram:alert:{result.TickerSymbol}:" +
-                       $"{DateTime.UtcNow:yyyyMMddHH}";
+
+        // Dedup — one alert per ticker per 2 hours
+        var dedupKey = $"telegram:alert:{result.TickerSymbol}:{DateTime.UtcNow:yyyyMMddHH}";
         if (await db.KeyExistsAsync(dedupKey)) return;
-        await db.StringSetAsync(dedupKey, "1", TimeSpan.FromHours(2));
 
         var biasEmoji = result.TradeBias switch
         {
@@ -92,7 +91,7 @@ public class TelegramAlertService
 
         if (sent)
         {
-            // Cache alert in Redis for dashboard notifications
+            await db.StringSetAsync(dedupKey, "1", TimeSpan.FromHours(2));
             await CacheAlertAsync(db, result);
 
             _logger.LogInformation(
@@ -102,7 +101,7 @@ public class TelegramAlertService
         }
 
         _logger.LogWarning(
-            "Telegram alert failed for {Ticker} — not caching alert",
+            "Telegram alert failed for {Ticker} — not caching alert and not setting dedup",
             result.TickerSymbol);
     }
 
@@ -193,7 +192,6 @@ public class TelegramAlertService
             AlertedAt = MarketSessionHelper.ToSast(DateTime.UtcNow)
         });
 
-        // Push to list, keep last 20 alerts
         await db.ListLeftPushAsync(AlertsKey, alert);
         await db.ListTrimAsync(AlertsKey, 0, 19);
         await db.KeyExpireAsync(AlertsKey, TimeSpan.FromHours(24));

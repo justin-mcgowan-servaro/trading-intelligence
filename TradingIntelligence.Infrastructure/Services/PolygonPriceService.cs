@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
+using System.Net;
 using System.Net.Http.Json;
 using TradingIntelligence.Core.Interfaces;
 
@@ -14,7 +15,10 @@ public class PolygonPriceService : IPolygonPriceService
     private static DateTime _lastCall = DateTime.MinValue;
     private const int DelayMs = 13000;
 
-    public PolygonPriceService(IHttpClientFactory factory, IConfiguration config, ILogger<PolygonPriceService> logger)
+    public PolygonPriceService(
+        IHttpClientFactory factory,
+        IConfiguration config,
+        ILogger<PolygonPriceService> logger)
     {
         _http = factory.CreateClient();
         _apiKey = config["Polygon:ApiKey"]!;
@@ -27,19 +31,50 @@ public class PolygonPriceService : IPolygonPriceService
         try
         {
             var wait = DelayMs - (int)(DateTime.UtcNow - _lastCall).TotalMilliseconds;
-            if (wait > 0) await Task.Delay(wait);
+            if (wait > 0)
+                await Task.Delay(wait);
 
             var url = $"https://api.polygon.io/v2/last/trade/{ticker}?apiKey={_apiKey}";
-            var response = await _http.GetFromJsonAsync<PolygonLastTradeResponse>(url);
+            using var response = await _http.GetAsync(url);
+
             _lastCall = DateTime.UtcNow;
 
-            if (response?.Results is null || response.Results.P <= 0)
+            if (response.StatusCode == HttpStatusCode.Forbidden)
+            {
+                _logger.LogWarning(
+                    "Polygon price lookup forbidden for {Ticker}. API key may lack entitlement for /v2/last/trade.",
+                    ticker);
+                return null;
+            }
+
+            if ((int)response.StatusCode == 429)
+            {
+                _logger.LogWarning(
+                    "Polygon price lookup rate-limited for {Ticker}",
+                    ticker);
+                return null;
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                _logger.LogWarning(
+                    "Polygon price lookup failed for {Ticker}. Status: {Status}. Body: {Body}",
+                    ticker,
+                    (int)response.StatusCode,
+                    body);
+                return null;
+            }
+
+            var payload = await response.Content.ReadFromJsonAsync<PolygonLastTradeResponse>();
+
+            if (payload?.Results is null || payload.Results.P <= 0)
             {
                 _logger.LogWarning("Polygon price response invalid for {Ticker}", ticker);
                 return null;
             }
 
-            return response.Results.P;
+            return payload.Results.P;
         }
         catch (Exception ex)
         {
@@ -54,4 +89,4 @@ public class PolygonPriceService : IPolygonPriceService
 }
 
 public record PolygonLastTradeResponse(PolygonTradeResult? Results);
-public record PolygonTradeResult(decimal P, long T); // P = price, T = timestamp
+public record PolygonTradeResult(decimal P, long T);
