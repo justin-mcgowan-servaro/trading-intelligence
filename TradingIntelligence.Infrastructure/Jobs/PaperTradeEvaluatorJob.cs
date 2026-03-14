@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Quartz;
-using TradingIntelligence.Infrastructure.Services;
+using TradingIntelligence.Core.Interfaces;
 
 namespace TradingIntelligence.Infrastructure.Jobs;
 

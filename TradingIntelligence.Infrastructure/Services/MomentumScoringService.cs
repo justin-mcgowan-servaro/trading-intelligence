@@ -29,7 +29,6 @@ public class MomentumScoringService : BackgroundService
 
     private const decimal MinScoreForAi = 60m;
     private readonly TelegramAlertService _telegram;
-    private readonly IPaperTradeService _paperTradeService;
 
     public MomentumScoringService(
         IConnectionMultiplexer redis,
