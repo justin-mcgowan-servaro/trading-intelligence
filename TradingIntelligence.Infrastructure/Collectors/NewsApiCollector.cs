@@ -125,9 +125,15 @@ public class NewsApiCollector
 
                 foreach (var article in articles)
                 {
-                    if (article.PublishedAtParsed < DateTime.UtcNow.AddHours(-24))
+                    if (article.PublishedAtParsed < DateTime.UtcNow.AddHours(-72))
                         continue;
-
+                    if (article.PublishedAtParsed < DateTime.UtcNow.AddHours(-72))
+                    {
+                        _logger.LogInformation("Skipping old article ({Age:F0}hrs): {Title}",
+                            (DateTime.UtcNow - article.PublishedAtParsed).TotalHours,
+                            article.Title);
+                        continue;
+                    }
                     var fullText = $"{article.Title} {article.Description}";
                     var enrichedText = EnrichWithTickers(fullText);
                     var tickers = TickerExtractor.Extract(enrichedText);
