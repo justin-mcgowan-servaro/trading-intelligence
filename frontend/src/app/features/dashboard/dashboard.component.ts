@@ -18,6 +18,8 @@ import { SparklineComponent } from '../../core/components/sparkline.component';
 
 type BiasFilter = 'All' | 'Long' | 'Short' | 'Watch' | 'NoTrade';
 type SortBy = 'scoreDesc' | 'scoreAsc' | 'updatedDesc' | 'ticker';
+type ReviewStatus = 'New' | 'Reviewing' | 'Watching' | 'Ready' | 'Archived';
+type ReviewFilter = 'All' | 'Reviewing' | 'Ready';
 
 interface ScoreRow {
   tickerSymbol: string;
@@ -53,6 +55,22 @@ interface MomentumAlert {
   alertedAt?: string;
 }
 
+interface ReviewedTickerRecord {
+  tickerSymbol: string;
+  status: ReviewStatus;
+  note: string;
+  addedAt: string;
+  snapshot: ScoreRow | null;
+}
+
+interface ReviewedTickerView {
+  tickerSymbol: string;
+  status: ReviewStatus;
+  note: string;
+  addedAt: string;
+  score: ScoreRow | null;
+}
+
 @Component({
   selector: 'app-dashboard',
   imports: [CommonModule, SparklineComponent],
@@ -67,6 +85,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   authService = inject(AuthService);
 
   private readonly pinnedStorageKey = 'serv_dashboard_pinned_tickers';
+  private readonly reviewStorageKey = 'serv_dashboard_review_records';
+  readonly reviewStatuses: ReviewStatus[] = ['New', 'Reviewing', 'Watching', 'Ready', 'Archived'];
   private refreshIntervals: ReturnType<typeof setInterval>[] = [];
 
   scores = signal<ScoreRow[]>([]);
@@ -91,6 +111,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   updatedAtEpochByTicker = signal<Map<string, number>>(new Map());
 
   pinnedTickers = signal<string[]>(this.readPinnedTickers());
+  reviewRecords = signal<Record<string, ReviewedTickerRecord>>(this.readReviewRecords());
+  reviewFilter = signal<ReviewFilter>('All');
 
   searchTerm = signal('');
   biasFilter = signal<BiasFilter>('All');
@@ -195,6 +217,61 @@ export class DashboardComponent implements OnInit, OnDestroy {
     highConviction: this.scores().filter((score) => score.totalScore >= 60).length
   }));
 
+  reviewedTickerViews = computed(() => {
+    const records = this.reviewRecords();
+    const liveScores = new Map(this.scores().map((score) => [score.tickerSymbol, score]));
+
+    return Object.values(records)
+      .map((record): ReviewedTickerView => ({
+        tickerSymbol: record.tickerSymbol,
+        status: record.status,
+        note: record.note,
+        addedAt: record.addedAt,
+        score: liveScores.get(record.tickerSymbol) ?? record.snapshot
+      }))
+      .sort((a, b) => {
+        const scoreDelta = (b.score?.totalScore ?? -1) - (a.score?.totalScore ?? -1);
+        if (scoreDelta !== 0) return scoreDelta;
+        return a.tickerSymbol.localeCompare(b.tickerSymbol);
+      });
+  });
+
+  visibleReviewedTickers = computed(() => {
+    const filter = this.reviewFilter();
+    const views = this.reviewedTickerViews();
+    if (filter === 'All') return views;
+    return views.filter((item) => item.status === filter);
+  });
+
+  reviewCounts = computed(() => {
+    const counts: Record<ReviewStatus, number> = {
+      New: 0,
+      Reviewing: 0,
+      Watching: 0,
+      Ready: 0,
+      Archived: 0
+    };
+
+    for (const item of this.reviewedTickerViews()) {
+      counts[item.status] += 1;
+    }
+
+    return counts;
+  });
+
+  reviewedByStatus = computed(() => {
+    const grouped = new Map<ReviewStatus, ReviewedTickerView[]>();
+    for (const status of this.reviewStatuses) {
+      grouped.set(status, []);
+    }
+
+    for (const item of this.visibleReviewedTickers()) {
+      grouped.get(item.status)?.push(item);
+    }
+
+    return grouped;
+  });
+
   constructor() {
     effect(() => {
       const update = this.signalService.lastUpdate();
@@ -214,6 +291,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     effect(() => {
       localStorage.setItem(this.pinnedStorageKey, JSON.stringify(this.pinnedTickers()));
+    });
+
+    effect(() => {
+      localStorage.setItem(this.reviewStorageKey, JSON.stringify(this.reviewRecords()));
     });
   }
 
@@ -420,6 +501,71 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
   }
 
+  addTickerToReview(ticker: string, status: ReviewStatus = 'New'): void {
+    const liveScore = this.scores().find((score) => score.tickerSymbol === ticker) ?? null;
+    this.reviewRecords.update((records) => {
+      const existing = records[ticker];
+      return {
+        ...records,
+        [ticker]: {
+          tickerSymbol: ticker,
+          status,
+          note: existing?.note ?? '',
+          addedAt: existing?.addedAt ?? new Date().toISOString(),
+          snapshot: liveScore ?? existing?.snapshot ?? null
+        }
+      };
+    });
+  }
+
+  setReviewStatus(ticker: string, status: string): void {
+    const nextStatus = this.toReviewStatus(status);
+    if (!nextStatus) return;
+    this.reviewRecords.update((records) => {
+      const current = records[ticker];
+      if (!current) return records;
+      return {
+        ...records,
+        [ticker]: {
+          ...current,
+          status: nextStatus
+        }
+      };
+    });
+  }
+
+  updateReviewNote(ticker: string, note: string): void {
+    this.reviewRecords.update((records) => {
+      const current = records[ticker];
+      if (!current) return records;
+      return {
+        ...records,
+        [ticker]: {
+          ...current,
+          note
+        }
+      };
+    });
+  }
+
+  removeFromReview(ticker: string): void {
+    this.reviewRecords.update((records) => {
+      if (!records[ticker]) return records;
+      const next = { ...records };
+      delete next[ticker];
+      return next;
+    });
+  }
+
+  isReviewed(ticker: string): boolean {
+    return !!this.reviewRecords()[ticker];
+  }
+  setReviewFilter(value: string): void {
+    if (value === 'All' || value === 'Reviewing' || value === 'Ready') {
+      this.reviewFilter.set(value);
+    }
+  }
+
   isPinned(ticker: string): boolean {
     return this.pinnedTickers().includes(ticker);
   }
@@ -504,6 +650,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
     })} SAST`;
   }
 
+
+  private toReviewStatus(value: string): ReviewStatus | null {
+    const match = this.reviewStatuses.find((status) => status === value);
+    return match ?? null;
+  }
+
   private readPinnedTickers(): string[] {
     try {
       const raw = localStorage.getItem(this.pinnedStorageKey);
@@ -514,6 +666,33 @@ export class DashboardComponent implements OnInit, OnDestroy {
     } catch {
       return [];
     }
+  }
+
+  private readReviewRecords(): Record<string, ReviewedTickerRecord> {
+    try {
+      const raw = localStorage.getItem(this.reviewStorageKey);
+      if (!raw) return {};
+      const parsed = JSON.parse(raw) as unknown;
+      if (!parsed || typeof parsed !== 'object') return {};
+
+      const validEntries = Object.entries(parsed as Record<string, unknown>)
+        .filter(([, value]) => this.isValidReviewRecord(value))
+        .map(([ticker, value]) => [ticker, value as ReviewedTickerRecord]);
+
+      return Object.fromEntries(validEntries);
+    } catch {
+      return {};
+    }
+  }
+
+  private isValidReviewRecord(value: unknown): value is ReviewedTickerRecord {
+    if (!value || typeof value !== 'object') return false;
+    const candidate = value as Partial<ReviewedTickerRecord>;
+    return typeof candidate.tickerSymbol === 'string'
+      && typeof candidate.note === 'string'
+      && typeof candidate.addedAt === 'string'
+      && typeof candidate.status === 'string'
+      && this.reviewStatuses.includes(candidate.status as ReviewStatus);
   }
 
   private getTickerUpdatedEpoch(ticker: string): number {
