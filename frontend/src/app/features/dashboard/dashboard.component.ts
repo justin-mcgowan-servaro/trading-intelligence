@@ -16,86 +16,40 @@ import { environment } from '../../../environments/environment';
 import { WatchlistService } from '../../core/services/watchlist.service';
 import { AuthService } from '../../core/services/auth.service';
 import { SparklineComponent } from '../../core/components/sparkline.component';
-
-type BiasFilter = 'All' | 'Long' | 'Short' | 'Watch' | 'NoTrade';
-type SortBy = 'scoreDesc' | 'scoreAsc' | 'updatedDesc' | 'ticker';
-type ReviewStatus = 'New' | 'Reviewing' | 'Watching' | 'Ready' | 'Archived';
-type ReviewFilter = 'All' | 'Reviewing' | 'Ready';
-
-interface ScoreRow {
-  tickerSymbol: string;
-  totalScore: number;
-  redditScore: number;
-  newsScore: number;
-  volumeScore: number;
-  optionsScore: number;
-  sentimentScore: number;
-  tradeBias: 'Long' | 'Short' | 'Watch' | 'NoTrade';
-  confidence?: string;
-  signalSummary?: string;
-  aiAnalysis?: string;
-  hasAiAnalysis?: boolean;
-  session: string;
-  scoredAtSast: string;
-}
-
-interface TickerDetail {
-  latest: ScoreRow;
-  history: Array<ScoreRow & { id: number; aiAnalysis?: string }>;
-  currentBuffer: {
-    signalCount: number;
-    signalTypes: string[];
-  };
-}
-
-interface MomentumAlert {
-  tickerSymbol: string;
-  totalScore: number;
-  tradeBias: ScoreRow['tradeBias'];
-  signalSummary?: string;
-  alertedAt?: string;
-}
-
-type AnalysisStatus = 'idle' | 'triggering' | 'processing' | 'completed' | 'timeout' | 'error';
-
-interface AnalysisJobStatusResponse {
-  jobId: string;
-  ticker: string;
-  status: 'processing' | 'completed';
-  hasAnalysis?: boolean;
-}
-
-interface DashboardNotification {
-  id: string;
-  type: 'alert' | 'ai-ready';
-  tickerSymbol: string;
-  title: string;
-  message: string;
-  time: string;
-  createdAtEpoch: number;
-  tradeBias?: ScoreRow['tradeBias'];
-  totalScore?: number;
-}
-
-interface ReviewedTickerRecord {
-  tickerSymbol: string;
-  status: ReviewStatus;
-  note: string;
-  addedAt: string;
-  snapshot: ScoreRow | null;
-}
-
-interface ReviewedTickerView {
-  tickerSymbol: string;
-  status: ReviewStatus;
-  note: string;
-  addedAt: string;
-  score: ScoreRow | null;
-}
+import {
+  AnalysisJobStatusResponse,
+  AnalysisStatus,
+  BiasFilter,
+  DashboardNotification,
+  MomentumAlert,
+  ReviewFilter,
+  ReviewedTickerRecord,
+  ReviewedTickerView,
+  ReviewStatus,
+  ScoreRow,
+  SortBy,
+  TickerDetail
+} from './dashboard.models';
+import { DashboardToolbarComponent } from './components/dashboard-toolbar/dashboard-toolbar.component';
+import { TradeCandidatesPanelComponent } from './components/trade-candidates-panel/trade-candidates-panel.component';
+import { WatchlistIntelligencePanelComponent } from './components/watchlist-intelligence-panel/watchlist-intelligence-panel.component';
+import { OpportunityReviewPanelComponent } from './components/opportunity-review-panel/opportunity-review-panel.component';
+import { TickerDetailModalComponent } from './components/ticker-detail-modal/ticker-detail-modal.component';
+import { AlertsPanelComponent } from './components/alerts-panel/alerts-panel.component';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [CommonModule, SparklineComponent, RouterLink],
+  imports: [
+    CommonModule,
+    SparklineComponent,
+    RouterLink,
+    DashboardToolbarComponent,
+    TradeCandidatesPanelComponent,
+    WatchlistIntelligencePanelComponent,
+    OpportunityReviewPanelComponent,
+    TickerDetailModalComponent,
+    AlertsPanelComponent
+  ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -308,6 +262,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     return grouped;
   });
+
+  reviewedTickerSymbols = computed(() => new Set(Object.keys(this.reviewRecords())));
+  pinnedTickerSet = computed(() => new Set(this.pinnedTickers()));
 
   constructor() {
     effect(() => {

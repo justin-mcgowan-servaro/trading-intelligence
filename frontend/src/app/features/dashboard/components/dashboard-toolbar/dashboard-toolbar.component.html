@@ -1,0 +1,26 @@
+<section class="panel toolbar-panel">
+  <div class="toolbar-row">
+    <input type="search" class="toolbar-input" placeholder="Search ticker..." [value]="searchTerm()" (input)="searchTermChange.emit($any($event.target).value)" />
+    <select class="toolbar-select" [value]="biasFilter()" (change)="biasFilterChange.emit($any($event.target).value)">
+      <option value="All">All Biases</option>
+      <option value="Long">Long</option>
+      <option value="Short">Short</option>
+      <option value="Watch">Watch</option>
+      <option value="NoTrade">NoTrade</option>
+    </select>
+    <label class="score-filter">Min Score {{ minScoreFilter() }}
+      <input type="range" min="0" max="100" step="5" [value]="minScoreFilter()" (input)="minScoreFilterChange.emit($any($event.target).value)" />
+    </label>
+    <label class="watch-toggle">
+      <input type="checkbox" [checked]="watchlistOnly()" (change)="watchlistOnlyChange.emit($any($event.target).checked)" />
+      Watchlist only
+    </label>
+    <select class="toolbar-select" [value]="sortBy()" (change)="sortByChange.emit($any($event.target).value)">
+      <option value="scoreDesc">Sort: Score (High-Low)</option>
+      <option value="scoreAsc">Sort: Score (Low-High)</option>
+      <option value="updatedDesc">Sort: Last Updated</option>
+      <option value="ticker">Sort: Ticker</option>
+    </select>
+    <button class="reset-btn" (click)="reset.emit()">Reset</button>
+  </div>
+</section>

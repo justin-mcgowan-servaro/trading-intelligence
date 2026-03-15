@@ -1,0 +1,16 @@
+.panel-header h2 { margin: 0 0 10px; font-size: 16px; }
+.bucket-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
+.bucket { background: #0f1621; border: 1px solid #21262d; border-radius: 8px; padding: 8px; }
+.bucket h3 { margin: 0 0 8px; font-size: 13px; color: #8b949e; text-transform: uppercase; }
+.candidate-card { width: 100%; margin-bottom: 8px; background: #161b22; border: 1px solid #30363d; color: #e6edf3; border-radius: 8px; padding: 8px; text-align: left; cursor: pointer; }
+.candidate-card:hover { border-color: #58a6ff; background: #1c2430; }
+.card-top, .card-meta { display: flex; justify-content: space-between; gap: 8px; }
+.card-sub, .empty-mini { color: #8b949e; font-size: 12px; }
+.card-actions { display: flex; justify-content: flex-end; margin-bottom: 6px; }
+.card-chip { display: inline-block; font-size: 11px; padding: 2px 8px; }
+.bias-badge { border-radius: 999px; padding: 2px 8px; font-size: 11px; border: 1px solid #30363d; }
+.bias-badge.long { background: #12261a; color: #3fb950; }
+.bias-badge.short { background: #2f181b; color: #ff7b72; }
+.bias-badge.watch { background: #342b13; color: #d29922; }
+.bias-badge.notrade { background: #21262d; color: #8b949e; }
+.mini-action { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; border-radius: 6px; padding: 6px 10px; cursor: pointer; }

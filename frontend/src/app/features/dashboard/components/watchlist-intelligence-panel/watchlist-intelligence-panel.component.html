@@ -1,0 +1,24 @@
+<article class="panel side-panel">
+  <h2>Pinned / Review Queue</h2>
+  @if (pinnedTickers().length === 0) {
+    <p class="empty-mini">Pin tickers from cards or rows for quick review loops.</p>
+  }
+  @for (ticker of pinnedTickers(); track ticker) {
+    <div class="queue-item">
+      <button class="queue-open" (click)="selectTicker.emit(ticker)">{{ ticker }}</button>
+      <button class="queue-remove" (click)="togglePin.emit(ticker)" aria-label="Remove pinned ticker">✕</button>
+    </div>
+  }
+
+  <h2>Watchlist Intelligence</h2>
+  @if (watchlistIntelligence().length === 0) {
+    <p class="empty-mini">Watchlist is empty or has no active momentum scores.</p>
+  }
+  @for (score of watchlistIntelligence(); track score.tickerSymbol) {
+    <button class="watch-item" (click)="selectTicker.emit(score.tickerSymbol)">
+      <span class="watch-ticker">{{ score.tickerSymbol }}</span>
+      <span class="watch-score">{{ score.totalScore | number:'1.0-0' }}</span>
+      <span class="watch-sub">{{ score.tradeBias }} · {{ score.hasAiAnalysis ? 'AI' : 'No AI' }} · {{ score.scoredAtSast }}</span>
+    </button>
+  }
+</article>

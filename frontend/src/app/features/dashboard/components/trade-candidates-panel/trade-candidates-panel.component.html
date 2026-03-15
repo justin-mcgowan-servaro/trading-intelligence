@@ -1,0 +1,102 @@
+<article class="panel trade-candidates">
+  <div class="panel-header"><h2>Trade Candidates Workspace</h2></div>
+  <div class="bucket-grid">
+    <div class="bucket">
+      <h3>Strong Longs</h3>
+      @for (score of strongLongs(); track score.tickerSymbol) {
+        <button class="candidate-card" (click)="selectTicker.emit(score.tickerSymbol)">
+          <div class="card-actions" (click)="$event.stopPropagation()">
+            <span class="mini-action card-chip" (click)="addTickerToReview.emit(score.tickerSymbol)">{{ isReviewed(score.tickerSymbol) ? 'In Review' : 'Add to Review' }}</span>
+          </div>
+          <div class="card-top"><strong>{{ score.tickerSymbol }}</strong><span>{{ score.totalScore | number:'1.0-0' }}/100</span></div>
+          <div class="card-meta"><span class="bias-badge" [class]="biasBadgeClass(score.tradeBias)">{{ score.tradeBias }}</span><span>{{ scoreBand(score.totalScore) }}</span></div>
+          <div class="card-sub">{{ score.session }} · {{ score.scoredAtSast }} · AI {{ score.hasAiAnalysis ? '✓' : '—' }}</div>
+          <app-sparkline [data]="getHistory(score.tickerSymbol)" [latestScore]="score.totalScore" [width]="220" [height]="30" />
+        </button>
+      } @empty {
+        <p class="empty-mini">No strong long setups currently.</p>
+      }
+    </div>
+
+    <div class="bucket">
+      <h3>Strong Shorts</h3>
+      @for (score of strongShorts(); track score.tickerSymbol) {
+        <button class="candidate-card" (click)="selectTicker.emit(score.tickerSymbol)">
+          <div class="card-actions" (click)="$event.stopPropagation()">
+            <span class="mini-action card-chip" (click)="addTickerToReview.emit(score.tickerSymbol)">{{ isReviewed(score.tickerSymbol) ? 'In Review' : 'Add to Review' }}</span>
+          </div>
+          <div class="card-top"><strong>{{ score.tickerSymbol }}</strong><span>{{ score.totalScore | number:'1.0-0' }}/100</span></div>
+          <div class="card-meta"><span class="bias-badge" [class]="biasBadgeClass(score.tradeBias)">{{ score.tradeBias }}</span><span>{{ scoreBand(score.totalScore) }}</span></div>
+          <div class="card-sub">{{ score.session }} · {{ score.scoredAtSast }} · AI {{ score.hasAiAnalysis ? '✓' : '—' }}</div>
+          <app-sparkline [data]="getHistory(score.tickerSymbol)" [latestScore]="score.totalScore" [width]="220" [height]="30" />
+        </button>
+      } @empty {
+        <p class="empty-mini">No strong short setups currently.</p>
+      }
+    </div>
+
+    <div class="bucket">
+      <h3>On Watch</h3>
+      @for (score of onWatch(); track score.tickerSymbol) {
+        <button class="candidate-card" (click)="selectTicker.emit(score.tickerSymbol)">
+          <div class="card-actions" (click)="$event.stopPropagation()">
+            <span class="mini-action card-chip" (click)="addTickerToReview.emit(score.tickerSymbol)">{{ isReviewed(score.tickerSymbol) ? 'In Review' : 'Add to Review' }}</span>
+          </div>
+          <div class="card-top"><strong>{{ score.tickerSymbol }}</strong><span>{{ score.totalScore | number:'1.0-0' }}/100</span></div>
+          <div class="card-meta"><span class="bias-badge" [class]="biasBadgeClass(score.tradeBias)">{{ score.tradeBias }}</span><span>{{ scoreBand(score.totalScore) }}</span></div>
+          <div class="card-sub">{{ score.signalSummary || 'Monitoring setup quality' }}</div>
+        </button>
+      } @empty {
+        <p class="empty-mini">Nothing in watch zone.</p>
+      }
+    </div>
+
+    <div class="bucket">
+      <h3>Watchlist Hits</h3>
+      @for (score of watchlistCandidates(); track score.tickerSymbol) {
+        <button class="candidate-card" (click)="selectTicker.emit(score.tickerSymbol)">
+          <div class="card-actions" (click)="$event.stopPropagation()">
+            <span class="mini-action card-chip" (click)="addTickerToReview.emit(score.tickerSymbol)">{{ isReviewed(score.tickerSymbol) ? 'In Review' : 'Add to Review' }}</span>
+          </div>
+          <div class="card-top"><strong>{{ score.tickerSymbol }}</strong><span>{{ score.totalScore | number:'1.0-0' }}/100</span></div>
+          <div class="card-meta"><span class="bias-badge" [class]="biasBadgeClass(score.tradeBias)">{{ score.tradeBias }}</span><span>{{ score.scoredAtSast }}</span></div>
+          <div class="card-sub">{{ score.signalSummary || 'No summary yet' }}</div>
+        </button>
+      } @empty {
+        <p class="empty-mini">Add tickers to your watchlist to populate this bucket.</p>
+      }
+    </div>
+
+    <div class="bucket">
+      <h3>Recent Movers</h3>
+      @for (score of recentMovers(); track score.tickerSymbol) {
+        <button class="candidate-card" (click)="selectTicker.emit(score.tickerSymbol)">
+          <div class="card-actions" (click)="$event.stopPropagation()">
+            <span class="mini-action card-chip" (click)="addTickerToReview.emit(score.tickerSymbol)">{{ isReviewed(score.tickerSymbol) ? 'In Review' : 'Add to Review' }}</span>
+          </div>
+          <div class="card-top"><strong>{{ score.tickerSymbol }}</strong><span>{{ score.totalScore | number:'1.0-0' }}/100</span></div>
+          <div class="card-meta"><span class="bias-badge" [class]="biasBadgeClass(score.tradeBias)">{{ score.tradeBias }}</span><span>Updated live</span></div>
+          <div class="card-sub">{{ score.signalSummary || 'Momentum recently changed' }}</div>
+        </button>
+      } @empty {
+        <p class="empty-mini">No recent movers yet.</p>
+      }
+    </div>
+
+    <div class="bucket">
+      <h3>Needs Review</h3>
+      @for (score of needsReview(); track score.tickerSymbol) {
+        <button class="candidate-card" (click)="selectTicker.emit(score.tickerSymbol)">
+          <div class="card-actions" (click)="$event.stopPropagation()">
+            <span class="mini-action card-chip" (click)="addTickerToReview.emit(score.tickerSymbol)">{{ isReviewed(score.tickerSymbol) ? 'In Review' : 'Add to Review' }}</span>
+          </div>
+          <div class="card-top"><strong>{{ score.tickerSymbol }}</strong><span>{{ score.totalScore | number:'1.0-0' }}/100</span></div>
+          <div class="card-meta"><span class="bias-badge" [class]="biasBadgeClass(score.tradeBias)">{{ score.tradeBias }}</span><span>AI {{ score.hasAiAnalysis ? '✓' : 'pending' }}</span></div>
+          <div class="card-sub">{{ score.signalSummary || 'Operator review recommended' }}</div>
+        </button>
+      } @empty {
+        <p class="empty-mini">No immediate review queue from score feed.</p>
+      }
+    </div>
+  </div>
+</article>

@@ -1,0 +1,5 @@
+.toolbar-panel { margin-top: 12px; }
+.toolbar-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.toolbar-input, .toolbar-select { background: #0d1117; border: 1px solid #30363d; color: #c9d1d9; border-radius: 6px; padding: 8px; }
+.watch-toggle, .score-filter { font-size: 12px; color: #8b949e; display: flex; align-items: center; gap: 8px; }
+.reset-btn { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; border-radius: 6px; padding: 6px 10px; cursor: pointer; }

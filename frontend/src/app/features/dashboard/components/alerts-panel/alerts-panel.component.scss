@@ -1,0 +1,19 @@
+.alerts-overlay { position: fixed; inset: 0; z-index: 200; }
+.alerts-panel { position: fixed; top: 0; right: 0; bottom: 0; width: 420px; background: #161b22; border-left: 1px solid #21262d; overflow: auto; }
+.alerts-header { display: flex; justify-content: space-between; align-items: center; padding: 12px; position: sticky; top: 0; background: #161b22; border-bottom: 1px solid #21262d; }
+.alert-item { width: 100%; border: none; text-align: left; background: #161b22; color: #e6edf3; border-bottom: 1px solid #21262d; padding: 10px 12px; cursor: pointer; }
+.alert-item:hover { border-color: #58a6ff; background: #1c2430; }
+.alert-top, .alert-bottom { display: flex; justify-content: space-between; gap: 8px; }
+.alert-short { box-shadow: inset 4px 0 0 #ff7b72; }
+.alert-long { box-shadow: inset 4px 0 0 #3fb950; }
+.alert-watch { box-shadow: inset 4px 0 0 #d29922; }
+.alert-ai-ready { box-shadow: inset 4px 0 0 #58a6ff; }
+.ai-notice-pill { border: 1px solid #58a6ff; color: #58a6ff; border-radius: 999px; font-size: 11px; padding: 2px 8px; }
+.alert-actions { margin-top: 8px; }
+.mini-action { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; border-radius: 6px; padding: 6px 10px; cursor: pointer; }
+.card-chip { display: inline-block; font-size: 11px; padding: 2px 8px; }
+.bias-badge { border-radius: 999px; padding: 2px 8px; font-size: 11px; border: 1px solid #30363d; }
+.bias-badge.long { background: #12261a; color: #3fb950; }
+.bias-badge.short { background: #2f181b; color: #ff7b72; }
+.bias-badge.watch { background: #342b13; color: #d29922; }
+.bias-badge.notrade { background: #21262d; color: #8b949e; }
