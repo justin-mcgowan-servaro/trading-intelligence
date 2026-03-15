@@ -11,3 +11,4 @@ TradingIntelligence.Api/bin/Debug/net10.0/appsettings.Development.json
 /TradingIntelligence.Api/obj
 /TradingIntelligence.Infrastructure/obj
 /TradingIntelligence.Infrastructure/obj
+/TradingIntelligence.Infrastructure/bin

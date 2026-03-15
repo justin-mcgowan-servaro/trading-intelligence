@@ -226,7 +226,8 @@ public class MomentumController : ControllerBase
         if (raw.IsNullOrEmpty)
             return NotFound(new { message = "Analysis job not found or expired" });
 
-        var state = JsonSerializer.Deserialize<AnalysisJobState>(raw!);
+        // Disambiguate JsonSerializer.Deserialize overloads by passing a string
+        var state = JsonSerializer.Deserialize<AnalysisJobState>(raw.ToString()!);
         if (state == null)
             return NotFound(new { message = "Analysis job state is invalid" });
 
