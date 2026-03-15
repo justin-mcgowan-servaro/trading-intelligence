@@ -55,6 +55,27 @@ interface MomentumAlert {
   alertedAt?: string;
 }
 
+type AnalysisStatus = 'idle' | 'triggering' | 'processing' | 'completed' | 'timeout' | 'error';
+
+interface AnalysisJobStatusResponse {
+  jobId: string;
+  ticker: string;
+  status: 'processing' | 'completed';
+  hasAnalysis?: boolean;
+}
+
+interface DashboardNotification {
+  id: string;
+  type: 'alert' | 'ai-ready';
+  tickerSymbol: string;
+  title: string;
+  message: string;
+  time: string;
+  createdAtEpoch: number;
+  tradeBias?: ScoreRow['tradeBias'];
+  totalScore?: number;
+}
+
 interface ReviewedTickerRecord {
   tickerSymbol: string;
   status: ReviewStatus;
@@ -98,6 +119,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
   tickerLoading = signal(false);
   activeTab = signal<'overview' | 'analysis' | 'history'>('overview');
   analyzing = signal(false);
+  analysisStatusByTicker = signal<Record<string, AnalysisStatus>>({});
+  analysisErrorByTicker = signal<Record<string, string>>({});
+  private analysisPollingByTicker = new Map<string, ReturnType<typeof setInterval>>();
+  private analysisTimeoutByTicker = new Map<string, ReturnType<typeof setTimeout>>();
+  private analysisJobIdByTicker = signal<Record<string, string>>({});
+  private aiNotificationKeys = signal<Set<string>>(new Set());
+  aiNotifications = signal<DashboardNotification[]>([]);
 
   currentTime = signal(this.getSastTime());
   session = signal('Loading...');
@@ -106,6 +134,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
   alerts = signal<MomentumAlert[]>([]);
   showAlertsPanel = signal(false);
   unreadCount = signal(0);
+
+  notifications = computed(() => {
+    const scoreAlerts = this.alerts().map((alert, index) => this.toAlertNotification(alert, index));
+    return [...this.aiNotifications(), ...scoreAlerts]
+      .sort((a, b) => b.createdAtEpoch - a.createdAtEpoch)
+      .slice(0, 50);
+  });
 
   scoreHistory = signal<Map<string, number[]>>(new Map());
   updatedAtEpochByTicker = signal<Map<string, number>>(new Map());
@@ -313,6 +348,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.signalService.disconnect();
     this.refreshIntervals.forEach((intervalId) => clearInterval(intervalId));
+    this.stopAllAnalysisMonitoring();
   }
 
   loadHistory(): void {
@@ -379,7 +415,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
           this.alerts.set(parsed);
           if (!this.showAlertsPanel()) {
-            this.unreadCount.set(parsed.length);
+            this.unreadCount.set(parsed.length + this.aiNotifications().length);
           }
         }
       });
@@ -389,11 +425,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return this.scoreHistory().get(ticker) ?? [];
   }
 
-  selectTicker(ticker: string): void {
+  selectTicker(ticker: string, preferredTab: 'overview' | 'analysis' | 'history' = 'overview'): void {
     this.selectedTicker.set(ticker);
     this.tickerDetail.set(null);
     this.tickerLoading.set(true);
-    this.activeTab.set('overview');
+    this.activeTab.set(preferredTab);
 
     this.http.get<TickerDetail>(`${environment.apiUrl}/api/momentum/${ticker}`)
       .subscribe({
@@ -408,7 +444,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
             });
           }
           this.tickerLoading.set(false);
-          if (detail?.latest?.aiAnalysis) {
+          if (detail?.latest?.aiAnalysis && preferredTab === 'overview') {
             this.activeTab.set('analysis');
           }
         },
@@ -438,34 +474,38 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   triggerAnalysisForTicker(ticker: string, refreshSelected = false): void {
+    if (this.isAnalysisBusy(ticker)) return;
+
+    this.setAnalysisState(ticker, 'triggering');
+    this.analysisErrorByTicker.update((errors) => ({
+      ...errors,
+      [ticker]: ''
+    }));
     this.analyzing.set(true);
-    this.http.post<{ cached?: boolean; aiAnalysis?: string }>(`${environment.apiUrl}/api/momentum/${ticker}/analyze`, {})
+    this.http.post<{ cached?: boolean; aiAnalysis?: string; analysisJobId?: string }>(`${environment.apiUrl}/api/momentum/${ticker}/analyze`, {})
       .subscribe({
         next: (result) => {
-          if (refreshSelected && this.tickerDetail() && result.cached && result.aiAnalysis) {
-            this.tickerDetail.update((detail) => {
-              if (!detail) return detail;
-              return { ...detail, latest: { ...detail.latest, aiAnalysis: result.aiAnalysis, hasAiAnalysis: true } };
-            });
-          } else if (refreshSelected) {
-            setTimeout(() => {
-              this.http.get<TickerDetail>(`${environment.apiUrl}/api/momentum/${ticker}`)
-                .subscribe({
-                  next: (detail) => this.tickerDetail.set(detail)
-                });
-            }, 5000);
+          if (result.cached && result.aiAnalysis) {
+            this.markAnalysisCompleted(ticker, result.aiAnalysis, refreshSelected);
+          } else {
+            this.setAnalysisState(ticker, 'processing');
+            if (result.analysisJobId) {
+              this.analysisJobIdByTicker.update((jobs) => ({ ...jobs, [ticker]: result.analysisJobId! }));
+            }
+            this.startAnalysisMonitoring(ticker, refreshSelected, result.analysisJobId);
           }
           this.analyzing.set(false);
         },
         error: () => {
+          this.setAnalysisState(ticker, 'error', 'Analysis could not be started. Please try again shortly.');
           this.analyzing.set(false);
         }
       });
   }
 
-  openAlert(alert: MomentumAlert): void {
+  openNotification(notification: DashboardNotification): void {
     this.showAlertsPanel.set(false);
-    this.selectTicker(alert.tickerSymbol);
+    this.selectTicker(notification.tickerSymbol, notification.type === 'ai-ready' ? 'analysis' : 'overview');
   }
 
   resetFilters(): void {
@@ -603,6 +643,32 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return !environment.production;
   }
 
+  getAnalysisStatus(ticker: string | null): AnalysisStatus {
+    if (!ticker) return 'idle';
+    return this.analysisStatusByTicker()[ticker] ?? 'idle';
+  }
+
+  isAnalysisBusy(ticker: string): boolean {
+    const status = this.getAnalysisStatus(ticker);
+    return status === 'triggering' || status === 'processing';
+  }
+
+  analysisStatusMessage(ticker: string | null): string {
+    const status = this.getAnalysisStatus(ticker);
+    if (status === 'triggering') return 'Triggering analysis...';
+    if (status === 'processing') return 'Analysis in progress. Please wait...';
+    if (status === 'timeout') return 'Analysis did not complete yet. Please try again shortly.';
+    if (status === 'error') return this.analysisErrorByTicker()[ticker ?? ''] || 'Analysis could not be started. Please try again shortly.';
+    return '';
+  }
+
+  analyzeButtonLabel(ticker: string | null): string {
+    const status = this.getAnalysisStatus(ticker);
+    if (status === 'triggering') return 'Triggering...';
+    if (status === 'processing') return 'Analyzing...';
+    return '⚡ Trigger Analysis Now';
+  }
+
   private applyIncomingScore(score: ScoreRow): void {
     this.scores.update((current) => {
       const index = current.findIndex((item) => item.tickerSymbol === score.tickerSymbol);
@@ -620,6 +686,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
       next.set(score.tickerSymbol, [...existing, score.totalScore].slice(-20));
       return next;
     });
+
+    if (score.aiAnalysis && this.isAnalysisBusy(score.tickerSymbol)) {
+      this.markAnalysisCompleted(score.tickerSymbol, score.aiAnalysis, this.selectedTicker() === score.tickerSymbol);
+    }
   }
 
   private mapUpdate(update: MomentumUpdate): ScoreRow {
@@ -705,5 +775,170 @@ export class DashboardComponent implements OnInit, OnDestroy {
       next.set(ticker, Date.now());
       return next;
     });
+  }
+
+  private setAnalysisState(ticker: string, status: AnalysisStatus, errorMessage = ''): void {
+    this.analysisStatusByTicker.update((current) => ({
+      ...current,
+      [ticker]: status
+    }));
+
+    if (status !== 'error' && status !== 'timeout') {
+      this.analysisErrorByTicker.update((errors) => ({ ...errors, [ticker]: '' }));
+    } else {
+      this.analysisErrorByTicker.update((errors) => ({ ...errors, [ticker]: errorMessage }));
+    }
+  }
+
+  private startAnalysisMonitoring(ticker: string, refreshSelected: boolean, analysisJobId?: string): void {
+    this.stopAnalysisMonitoring(ticker);
+    const poll = () => this.pollAnalysisStatus(ticker, refreshSelected, analysisJobId);
+    poll();
+
+    const pollId = setInterval(poll, 4000);
+    this.analysisPollingByTicker.set(ticker, pollId);
+
+    const timeoutId = setTimeout(() => {
+      this.stopAnalysisMonitoring(ticker);
+      if (this.isAnalysisBusy(ticker)) {
+        this.setAnalysisState(ticker, 'timeout', 'Analysis did not complete yet. Please try again shortly.');
+      }
+    }, 90000);
+
+    this.analysisTimeoutByTicker.set(ticker, timeoutId);
+  }
+
+  private pollAnalysisStatus(ticker: string, refreshSelected: boolean, analysisJobId?: string): void {
+    if (analysisJobId) {
+      this.http.get<AnalysisJobStatusResponse>(`${environment.apiUrl}/api/momentum/analysis-jobs/${analysisJobId}`)
+        .subscribe({
+          next: (status) => {
+            if (status.status === 'completed') {
+              this.fetchTickerForAnalysisCompletion(ticker, refreshSelected);
+              return;
+            }
+
+            this.fetchTickerForAnalysisCompletion(ticker, refreshSelected);
+          },
+          error: () => {
+            this.fetchTickerForAnalysisCompletion(ticker, refreshSelected);
+          }
+        });
+      return;
+    }
+
+    this.fetchTickerForAnalysisCompletion(ticker, refreshSelected);
+  }
+
+  private fetchTickerForAnalysisCompletion(ticker: string, refreshSelected: boolean): void {
+    this.http.get<TickerDetail>(`${environment.apiUrl}/api/momentum/${ticker}`)
+      .subscribe({
+        next: (detail) => {
+          if (refreshSelected && this.selectedTicker() === ticker) {
+            this.tickerDetail.set(detail);
+          }
+
+          if (detail.latest.aiAnalysis) {
+            this.markAnalysisCompleted(ticker, detail.latest.aiAnalysis, refreshSelected, detail);
+          }
+        }
+      });
+  }
+
+  private markAnalysisCompleted(ticker: string, aiAnalysis: string, refreshSelected: boolean, detail?: TickerDetail): void {
+    this.stopAnalysisMonitoring(ticker);
+    this.setAnalysisState(ticker, 'completed');
+
+    if (detail) {
+      if (refreshSelected && this.selectedTicker() === ticker) {
+        this.tickerDetail.set(detail);
+      }
+    } else if (refreshSelected && this.selectedTicker() === ticker) {
+      this.tickerDetail.update((current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          latest: { ...current.latest, aiAnalysis, hasAiAnalysis: true }
+        };
+      });
+    }
+
+    this.scores.update((scores) => scores.map((score) => (
+      score.tickerSymbol === ticker
+        ? { ...score, aiAnalysis, hasAiAnalysis: true }
+        : score
+    )));
+
+    this.addAiReadyNotification(ticker);
+  }
+
+  private addAiReadyNotification(ticker: string): void {
+    const selected = this.scores().find((score) => score.tickerSymbol === ticker);
+    const time = this.getSastTime();
+    const key = `${ticker}:${selected?.scoredAtSast ?? time}`;
+    if (this.aiNotificationKeys().has(key)) return;
+
+    this.aiNotificationKeys.update((current) => {
+      const next = new Set(current);
+      next.add(key);
+      return next;
+    });
+
+    const notification: DashboardNotification = {
+      id: `ai-ready:${key}`,
+      type: 'ai-ready',
+      tickerSymbol: ticker,
+      title: `AI analysis ready for ${ticker}`,
+      message: 'Tap to open AI Analysis tab.',
+      time,
+      createdAtEpoch: Date.now(),
+      tradeBias: selected?.tradeBias,
+      totalScore: selected?.totalScore
+    };
+
+    this.aiNotifications.update((current) => [notification, ...current].slice(0, 30));
+    if (!this.showAlertsPanel()) {
+      this.unreadCount.update((count) => count + 1);
+    }
+  }
+
+  private toAlertNotification(alert: MomentumAlert, index: number): DashboardNotification {
+    return {
+      id: `alert:${alert.tickerSymbol}:${alert.alertedAt ?? index}`,
+      type: 'alert',
+      tickerSymbol: alert.tickerSymbol,
+      title: `${alert.tickerSymbol} scored ${alert.totalScore}/100`,
+      message: alert.signalSummary || 'No summary provided',
+      time: alert.alertedAt || '',
+      createdAtEpoch: Date.parse(alert.alertedAt || '') || 0,
+      tradeBias: alert.tradeBias,
+      totalScore: alert.totalScore
+    };
+  }
+
+  private stopAnalysisMonitoring(ticker: string): void {
+    this.analysisJobIdByTicker.update((jobs) => {
+      const next = { ...jobs };
+      delete next[ticker];
+      return next;
+    });
+
+    const pollId = this.analysisPollingByTicker.get(ticker);
+    if (pollId) {
+      clearInterval(pollId);
+      this.analysisPollingByTicker.delete(ticker);
+    }
+
+    const timeoutId = this.analysisTimeoutByTicker.get(ticker);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      this.analysisTimeoutByTicker.delete(ticker);
+    }
+  }
+
+  private stopAllAnalysisMonitoring(): void {
+    for (const ticker of this.analysisPollingByTicker.keys()) {
+      this.stopAnalysisMonitoring(ticker);
+    }
   }
 }
