@@ -1,0 +1,65 @@
+<section class="panel review-panel">
+  <div class="review-panel-header">
+    <h2>Opportunity Review Workspace</h2>
+    <div class="review-toolbar">
+      <select class="toolbar-select" [value]="reviewFilter()" (change)="setReviewFilter.emit($any($event.target).value)">
+        <option value="All">All statuses</option>
+        <option value="Reviewing">Reviewing</option>
+        <option value="Ready">Ready</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="review-status-row">
+    @for (status of reviewStatuses(); track status) {
+      <span class="review-count-pill">{{ status }}: {{ reviewCounts()[status] }}</span>
+    }
+  </div>
+
+  <div class="review-grid">
+    @for (status of reviewStatuses(); track status) {
+      <article class="review-column">
+        <h3>{{ status }}</h3>
+        @if (reviewedByStatus().get(status)?.length === 0) {
+          <p class="empty-mini">No {{ status.toLowerCase() }} opportunities.</p>
+        }
+        @for (item of reviewedByStatus().get(status) ?? []; track item.tickerSymbol) {
+          <div class="review-card">
+            <button class="review-card-main" (click)="selectTicker.emit(item.tickerSymbol)">
+              <div class="card-top"><strong>{{ item.tickerSymbol }}</strong><span>{{ item.score?.totalScore ?? '—' }}/100</span></div>
+              <div class="card-meta">
+                <span class="bias-badge" [class]="biasBadgeClass(item.score?.tradeBias || 'NoTrade')">{{ item.score?.tradeBias || 'NoTrade' }}</span>
+                <span>{{ item.score?.session || 'No session' }}</span>
+              </div>
+              <div class="card-sub">{{ item.score?.scoredAtSast || item.addedAt }} · AI {{ item.score?.hasAiAnalysis ? '✓' : '—' }}</div>
+              <div class="card-sub">{{ item.score?.signalSummary || 'No signal summary available.' }}</div>
+              <app-sparkline [data]="getHistory(item.tickerSymbol)" [latestScore]="item.score?.totalScore ?? 0" [width]="220" [height]="30" />
+              <div class="card-sub">Watchlist: {{ watchlistedTickers().has(item.tickerSymbol) ? 'Yes' : 'No' }} · Pinned: {{ pinnedTickers().has(item.tickerSymbol) ? 'Yes' : 'No' }}</div>
+            </button>
+
+            <div class="review-card-actions">
+              <select class="toolbar-select review-status-select" [value]="item.status" (change)="setReviewStatus.emit({ ticker: item.tickerSymbol, status: $any($event.target).value })">
+                @for (reviewStatus of reviewStatuses(); track reviewStatus) {
+                  <option [value]="reviewStatus">{{ reviewStatus }}</option>
+                }
+              </select>
+              <button class="mini-action" (click)="removeFromReview.emit(item.tickerSymbol)">Remove</button>
+            </div>
+
+            <label class="review-note-label" [for]="'review-note-' + item.tickerSymbol">Operator note</label>
+            <textarea
+              class="review-note"
+              [id]="'review-note-' + item.tickerSymbol"
+              rows="2"
+              [value]="item.note"
+              (click)="$event.stopPropagation()"
+              (input)="updateReviewNote.emit({ ticker: item.tickerSymbol, note: $any($event.target).value })"></textarea>
+            @if (item.note) {
+              <div class="card-sub">Note: {{ item.note }}</div>
+            }
+          </div>
+        }
+      </article>
+    }
+  </div>
+</section>

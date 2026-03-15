@@ -1,0 +1,116 @@
+<div class="modal-overlay" (click)="close.emit()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title-group">
+        <span class="modal-ticker">{{ selectedTicker() }}</span>
+        @if (tickerDetail()) {
+          <span class="modal-score-pill" [class]="scoreBarClass(tickerDetail()!.latest.totalScore)">{{ tickerDetail()!.latest.totalScore | number:'1.0-0' }}/100</span>
+          <span class="bias-badge" [class]="biasBadgeClass(tickerDetail()!.latest.tradeBias)">{{ tickerDetail()!.latest.tradeBias }}</span>
+          <button class="mini-action" (click)="togglePin.emit(selectedTicker())">{{ isPinned() ? 'Unpin' : 'Pin' }}</button>
+          <button class="mini-action" (click)="addToReview.emit(selectedTicker())">{{ isReviewed() ? 'In Review' : 'Add to Review' }}</button>
+          @if (canToggleWatchlist()) {
+            <button class="star-btn modal-star" [class.starred]="isWatchlisted()" (click)="toggleWatchlist.emit(selectedTicker())">
+              {{ isWatchlisted() ? '★ Watchlisted' : '☆ Add to Watchlist' }}
+            </button>
+          }
+        }
+      </div>
+      <button class="modal-close" (click)="close.emit()">✕</button>
+    </div>
+
+    <div class="modal-tabs">
+      <button class="tab-btn" [class.active]="activeTab() === 'overview'" (click)="activeTabChange.emit('overview')">Overview</button>
+      <button class="tab-btn" [class.active]="activeTab() === 'analysis'" (click)="activeTabChange.emit('analysis')">AI Analysis</button>
+      <button class="tab-btn" [class.active]="activeTab() === 'history'" (click)="activeTabChange.emit('history')">History</button>
+    </div>
+
+    <div class="modal-body">
+      @if (tickerLoading()) {
+        <div class="modal-loading"><div class="spinner"></div><p>Fetching latest data...</p></div>
+      }
+
+      @if (!tickerLoading() && tickerDetail() && activeTab() === 'overview') {
+        <div class="tab-content">
+          <div class="summary-strip">
+            <span>Score: {{ tickerDetail()!.latest.totalScore | number:'1.0-0' }}</span>
+            <span>Bias: {{ tickerDetail()!.latest.tradeBias }}</span>
+            <span>Session: {{ tickerDetail()!.latest.session }}</span>
+            <span>Last scored: {{ tickerDetail()!.latest.scoredAtSast }}</span>
+            <span>AI: {{ tickerDetail()!.latest.aiAnalysis ? 'Available' : 'Not available' }}</span>
+          </div>
+
+          <div class="section-title">Score Trend</div>
+          <div class="modal-spark-wrap">
+            <app-sparkline [data]="scoreHistory()" [latestScore]="tickerDetail()!.latest.totalScore" [width]="780" [height]="60" />
+          </div>
+
+          <div class="section-title">Signal Breakdown</div>
+          <div class="signal-grid">
+            <div class="signal-row"><span class="signal-label">Reddit</span><span class="signal-val">{{ tickerDetail()!.latest.redditScore | number:'1.0-0' }}/20</span></div>
+            <div class="signal-row"><span class="signal-label">News</span><span class="signal-val">{{ tickerDetail()!.latest.newsScore | number:'1.0-0' }}/20</span></div>
+            <div class="signal-row"><span class="signal-label">Volume</span><span class="signal-val">{{ tickerDetail()!.latest.volumeScore | number:'1.0-0' }}/20</span></div>
+            <div class="signal-row"><span class="signal-label">Options</span><span class="signal-val">{{ tickerDetail()!.latest.optionsScore | number:'1.0-0' }}/20</span></div>
+            <div class="signal-row"><span class="signal-label">Sentiment</span><span class="signal-val">{{ tickerDetail()!.latest.sentimentScore | number:'1.0-0' }}/20</span></div>
+          </div>
+
+          <div class="section-title">Signal Summary</div>
+          <div class="signal-summary-text">{{ tickerDetail()!.latest.signalSummary || 'No summary available.' }}</div>
+
+          <div class="section-title">Live Buffer</div>
+          <div class="buffer-info">
+            <span class="buffer-count">{{ tickerDetail()!.currentBuffer.signalCount }} signals buffered</span>
+            <div class="buffer-types">
+              @for (type of tickerDetail()!.currentBuffer.signalTypes; track type) {
+                <span class="buffer-tag">{{ type }}</span>
+              }
+            </div>
+          </div>
+        </div>
+      }
+
+      @if (!tickerLoading() && tickerDetail() && activeTab() === 'analysis') {
+        <div class="tab-content">
+          @if (analysisStatusMessage()) {
+            <div class="analysis-status" [class.error]="analysisStatus() === 'error' || analysisStatus() === 'timeout'">
+              @if (analysisStatus() === 'triggering' || analysisStatus() === 'processing') {
+                <div class="spinner"></div>
+              }
+              <p>{{ analysisStatusMessage() }}</p>
+            </div>
+          }
+          @if (tickerDetail()!.latest.aiAnalysis) {
+            <div class="ai-analysis-block"><pre class="ai-pre">{{ tickerDetail()!.latest.aiAnalysis }}</pre></div>
+          } @else {
+            <div class="no-analysis">
+              <div class="no-analysis-icon">🤖</div>
+              <p>No AI analysis available yet.</p>
+              @if (tickerDetail()!.latest.totalScore >= 60) {
+                <button class="analyze-btn" [disabled]="isAnalysisBusy()" (click)="triggerAnalysis.emit()">{{ analyzeButtonLabel() }}</button>
+              }
+            </div>
+          }
+        </div>
+      }
+
+      @if (!tickerLoading() && tickerDetail() && activeTab() === 'history') {
+        <div class="tab-content">
+          <table class="history-table">
+            <thead><tr><th>Score</th><th>Bias</th><th>Session</th><th>Time</th><th>Summary</th><th>AI</th></tr></thead>
+            <tbody>
+              @for (h of tickerDetail()!.history; track h.id) {
+                <tr>
+                  <td><strong>{{ h.totalScore | number:'1.0-0' }}</strong></td>
+                  <td><span class="bias-badge" [class]="biasBadgeClass(h.tradeBias)">{{ h.tradeBias }}</span></td>
+                  <td>{{ h.session }}</td>
+                  <td>{{ h.scoredAtSast }}</td>
+                  <td>{{ h.signalSummary || '—' }}</td>
+                  <td>@if (h.aiAnalysis) { <span class="ai-badge">AI ✓</span> } @else { — }</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  </div>
+</div>

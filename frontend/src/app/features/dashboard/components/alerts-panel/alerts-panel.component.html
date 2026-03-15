@@ -1,0 +1,31 @@
+<div class="alerts-overlay" (click)="close.emit()">
+  <div class="alerts-panel" (click)="$event.stopPropagation()">
+    <div class="alerts-header"><h3>🔔 Recent Alerts</h3><button (click)="close.emit()">✕</button></div>
+    @if (notifications().length === 0) {
+      <div class="alerts-empty">No active alerts. High-conviction opportunities will appear here.</div>
+    }
+    @for (notification of notifications(); track notification.id) {
+      <button
+        class="alert-item"
+        [class]="'alert-item alert-' + (notification.tradeBias || 'watch').toLowerCase() + (notification.type === 'ai-ready' ? ' alert-ai-ready' : '')"
+        (click)="openNotification.emit(notification)">
+        <div class="alert-top">
+          <span class="alert-ticker">{{ notification.tickerSymbol }}</span>
+          @if (notification.totalScore) {
+            <span class="alert-score">{{ notification.totalScore }}/100</span>
+          }
+          @if (notification.tradeBias) {
+            <span class="bias-badge" [class]="biasBadgeClass(notification.tradeBias)">{{ notification.tradeBias }}</span>
+          }
+          @if (notification.type === 'ai-ready') {
+            <span class="ai-notice-pill">AI Ready</span>
+          }
+        </div>
+        <div class="alert-bottom"><span class="alert-signals">{{ notification.type === 'ai-ready' ? notification.title : notification.message }}</span><span class="alert-time">{{ notification.time }}</span></div>
+        @if (notification.type === 'alert') {
+          <div class="alert-actions" (click)="$event.stopPropagation()"><span class="mini-action card-chip" (click)="addToReview.emit(notification.tickerSymbol)">{{ isReviewed(notification.tickerSymbol) ? 'In Review' : 'Review' }}</span></div>
+        }
+      </button>
+    }
+  </div>
+</div>
