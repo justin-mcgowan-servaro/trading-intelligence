@@ -96,7 +96,7 @@ public class MorningBriefingJob : IJob
             if (string.IsNullOrEmpty(apiKey)) return;
 
             var client = new ChatClient(
-                model: _config["OpenAI:Model"] ?? "gpt-4o",
+                model: _config["OpenAI:Model"] ?? "gpt-5-nano",
                 apiKey: apiKey);
 
             var messages = new List<ChatMessage>

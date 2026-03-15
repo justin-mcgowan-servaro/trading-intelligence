@@ -151,7 +151,7 @@ public class MomentumController : ControllerBase
         return Ok(alerts);
     }
     // POST /api/momentum/{ticker}/analyze
-    // Triggers on-demand GPT-4o analysis for a ticker (uses cached score + live buffer)
+    // Triggers on-demand gpt-5-nano analysis for a ticker (uses cached score + live buffer)
     [HttpPost("{ticker}/analyze")]
     public async Task<IActionResult> AnalyzeTicker(
         string ticker,
