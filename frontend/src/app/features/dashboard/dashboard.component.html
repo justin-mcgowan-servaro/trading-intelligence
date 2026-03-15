@@ -44,6 +44,9 @@
           <h3>Strong Longs</h3>
           @for (score of strongLongs(); track score.tickerSymbol) {
             <button class="candidate-card" (click)="selectTicker(score.tickerSymbol)">
+              <div class="card-actions" (click)="$event.stopPropagation()">
+                <span class="mini-action card-chip" (click)="addTickerToReview(score.tickerSymbol)">{{ isReviewed(score.tickerSymbol) ? 'In Review' : 'Add to Review' }}</span>
+              </div>
               <div class="card-top"><strong>{{ score.tickerSymbol }}</strong><span>{{ score.totalScore | number:'1.0-0' }}/100</span></div>
               <div class="card-meta"><span class="bias-badge" [class]="biasBadgeClass(score.tradeBias)">{{ score.tradeBias }}</span><span>{{ scoreBand(score.totalScore) }}</span></div>
               <div class="card-sub">{{ score.session }} · {{ score.scoredAtSast }} · AI {{ score.hasAiAnalysis ? '✓' : '—' }}</div>
@@ -58,6 +61,9 @@
           <h3>Strong Shorts</h3>
           @for (score of strongShorts(); track score.tickerSymbol) {
             <button class="candidate-card" (click)="selectTicker(score.tickerSymbol)">
+              <div class="card-actions" (click)="$event.stopPropagation()">
+                <span class="mini-action card-chip" (click)="addTickerToReview(score.tickerSymbol)">{{ isReviewed(score.tickerSymbol) ? 'In Review' : 'Add to Review' }}</span>
+              </div>
               <div class="card-top"><strong>{{ score.tickerSymbol }}</strong><span>{{ score.totalScore | number:'1.0-0' }}/100</span></div>
               <div class="card-meta"><span class="bias-badge" [class]="biasBadgeClass(score.tradeBias)">{{ score.tradeBias }}</span><span>{{ scoreBand(score.totalScore) }}</span></div>
               <div class="card-sub">{{ score.session }} · {{ score.scoredAtSast }} · AI {{ score.hasAiAnalysis ? '✓' : '—' }}</div>
@@ -72,6 +78,9 @@
           <h3>On Watch</h3>
           @for (score of onWatch(); track score.tickerSymbol) {
             <button class="candidate-card" (click)="selectTicker(score.tickerSymbol)">
+              <div class="card-actions" (click)="$event.stopPropagation()">
+                <span class="mini-action card-chip" (click)="addTickerToReview(score.tickerSymbol)">{{ isReviewed(score.tickerSymbol) ? 'In Review' : 'Add to Review' }}</span>
+              </div>
               <div class="card-top"><strong>{{ score.tickerSymbol }}</strong><span>{{ score.totalScore | number:'1.0-0' }}/100</span></div>
               <div class="card-meta"><span class="bias-badge" [class]="biasBadgeClass(score.tradeBias)">{{ score.tradeBias }}</span><span>{{ scoreBand(score.totalScore) }}</span></div>
               <div class="card-sub">{{ score.signalSummary || 'Monitoring setup quality' }}</div>
@@ -85,6 +94,9 @@
           <h3>Watchlist Hits</h3>
           @for (score of watchlistCandidates(); track score.tickerSymbol) {
             <button class="candidate-card" (click)="selectTicker(score.tickerSymbol)">
+              <div class="card-actions" (click)="$event.stopPropagation()">
+                <span class="mini-action card-chip" (click)="addTickerToReview(score.tickerSymbol)">{{ isReviewed(score.tickerSymbol) ? 'In Review' : 'Add to Review' }}</span>
+              </div>
               <div class="card-top"><strong>{{ score.tickerSymbol }}</strong><span>{{ score.totalScore | number:'1.0-0' }}/100</span></div>
               <div class="card-meta"><span class="bias-badge" [class]="biasBadgeClass(score.tradeBias)">{{ score.tradeBias }}</span><span>{{ score.scoredAtSast }}</span></div>
               <div class="card-sub">{{ score.signalSummary || 'No summary yet' }}</div>
@@ -98,6 +110,9 @@
           <h3>Recent Movers</h3>
           @for (score of recentMovers(); track score.tickerSymbol) {
             <button class="candidate-card" (click)="selectTicker(score.tickerSymbol)">
+              <div class="card-actions" (click)="$event.stopPropagation()">
+                <span class="mini-action card-chip" (click)="addTickerToReview(score.tickerSymbol)">{{ isReviewed(score.tickerSymbol) ? 'In Review' : 'Add to Review' }}</span>
+              </div>
               <div class="card-top"><strong>{{ score.tickerSymbol }}</strong><span>{{ score.totalScore | number:'1.0-0' }}/100</span></div>
               <div class="card-meta"><span class="bias-badge" [class]="biasBadgeClass(score.tradeBias)">{{ score.tradeBias }}</span><span>Updated live</span></div>
               <div class="card-sub">{{ score.signalSummary || 'Momentum recently changed' }}</div>
@@ -111,6 +126,9 @@
           <h3>Needs Review</h3>
           @for (score of needsReview(); track score.tickerSymbol) {
             <button class="candidate-card" (click)="selectTicker(score.tickerSymbol)">
+              <div class="card-actions" (click)="$event.stopPropagation()">
+                <span class="mini-action card-chip" (click)="addTickerToReview(score.tickerSymbol)">{{ isReviewed(score.tickerSymbol) ? 'In Review' : 'Add to Review' }}</span>
+              </div>
               <div class="card-top"><strong>{{ score.tickerSymbol }}</strong><span>{{ score.totalScore | number:'1.0-0' }}/100</span></div>
               <div class="card-meta"><span class="bias-badge" [class]="biasBadgeClass(score.tradeBias)">{{ score.tradeBias }}</span><span>AI {{ score.hasAiAnalysis ? '✓' : 'pending' }}</span></div>
               <div class="card-sub">{{ score.signalSummary || 'Operator review recommended' }}</div>
@@ -146,6 +164,72 @@
         </button>
       }
     </article>
+  </section>
+
+  <section class="panel review-panel">
+    <div class="review-panel-header">
+      <h2>Opportunity Review Workspace</h2>
+      <div class="review-toolbar">
+        <select class="toolbar-select" [value]="reviewFilter()" (change)="setReviewFilter($any($event.target).value)">
+          <option value="All">All statuses</option>
+          <option value="Reviewing">Reviewing</option>
+          <option value="Ready">Ready</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="review-status-row">
+      @for (status of reviewStatuses; track status) {
+        <span class="review-count-pill">{{ status }}: {{ reviewCounts()[status] }}</span>
+      }
+    </div>
+
+    <div class="review-grid">
+      @for (status of reviewStatuses; track status) {
+        <article class="review-column">
+          <h3>{{ status }}</h3>
+          @if (reviewedByStatus().get(status)?.length === 0) {
+            <p class="empty-mini">No {{ status.toLowerCase() }} opportunities.</p>
+          }
+          @for (item of reviewedByStatus().get(status) ?? []; track item.tickerSymbol) {
+            <div class="review-card">
+              <button class="review-card-main" (click)="selectTicker(item.tickerSymbol)">
+                <div class="card-top"><strong>{{ item.tickerSymbol }}</strong><span>{{ item.score?.totalScore ?? '—' }}/100</span></div>
+                <div class="card-meta">
+                  <span class="bias-badge" [class]="biasBadgeClass(item.score?.tradeBias || 'NoTrade')">{{ item.score?.tradeBias || 'NoTrade' }}</span>
+                  <span>{{ item.score?.session || 'No session' }}</span>
+                </div>
+                <div class="card-sub">{{ item.score?.scoredAtSast || item.addedAt }} · AI {{ item.score?.hasAiAnalysis ? '✓' : '—' }}</div>
+                <div class="card-sub">{{ item.score?.signalSummary || 'No signal summary available.' }}</div>
+                <app-sparkline [data]="getHistory(item.tickerSymbol)" [latestScore]="item.score?.totalScore ?? 0" [width]="220" [height]="30" />
+                <div class="card-sub">Watchlist: {{ watchlistService.isWatchlisted(item.tickerSymbol) ? 'Yes' : 'No' }} · Pinned: {{ isPinned(item.tickerSymbol) ? 'Yes' : 'No' }}</div>
+              </button>
+
+              <div class="review-card-actions">
+                <select class="toolbar-select review-status-select" [value]="item.status" (change)="setReviewStatus(item.tickerSymbol, $any($event.target).value)">
+                  @for (reviewStatus of reviewStatuses; track reviewStatus) {
+                    <option [value]="reviewStatus">{{ reviewStatus }}</option>
+                  }
+                </select>
+                <button class="mini-action" (click)="removeFromReview(item.tickerSymbol)">Remove</button>
+              </div>
+
+              <label class="review-note-label" [for]="'review-note-' + item.tickerSymbol">Operator note</label>
+              <textarea
+                class="review-note"
+                [id]="'review-note-' + item.tickerSymbol"
+                rows="2"
+                [value]="item.note"
+                (click)="$event.stopPropagation()"
+                (input)="updateReviewNote(item.tickerSymbol, $any($event.target).value)"></textarea>
+              @if (item.note) {
+                <div class="card-sub">Note: {{ item.note }}</div>
+              }
+            </div>
+          }
+        </article>
+      }
+    </div>
   </section>
 
   <section class="panel toolbar-panel">
@@ -226,6 +310,7 @@
               <td class="ai-cell">@if (score.hasAiAnalysis) { <span class="ai-badge">AI ✓</span> } @else { <span class="ai-missing">—</span> }</td>
               <td class="actions-cell" (click)="$event.stopPropagation()">
                 <button class="mini-action" (click)="selectTicker(score.tickerSymbol)">Open</button>
+                <button class="mini-action" (click)="addTickerToReview(score.tickerSymbol)">{{ isReviewed(score.tickerSymbol) ? 'In Review' : 'Review' }}</button>
                 @if (score.totalScore >= 60 && !score.hasAiAnalysis) {
                   <button class="mini-action" [disabled]="analyzing()" (click)="triggerAnalysisForTicker(score.tickerSymbol)">Analyze</button>
                 }
@@ -249,6 +334,7 @@
               <span class="modal-score-pill" [class]="scoreBarClass(tickerDetail()!.latest.totalScore)">{{ tickerDetail()!.latest.totalScore | number:'1.0-0' }}/100</span>
               <span class="bias-badge" [class]="biasBadgeClass(tickerDetail()!.latest.tradeBias)">{{ tickerDetail()!.latest.tradeBias }}</span>
               <button class="mini-action" (click)="togglePin(selectedTicker()!)">{{ isPinned(selectedTicker()!) ? 'Unpin' : 'Pin' }}</button>
+              <button class="mini-action" (click)="addTickerToReview(selectedTicker()!, 'Reviewing')">{{ isReviewed(selectedTicker()!) ? 'In Review' : 'Add to Review' }}</button>
               @if (authService.isAuthenticated()) {
                 <button class="star-btn modal-star" [class.starred]="watchlistService.isWatchlisted(selectedTicker()!)" (click)="watchlistService.toggle(selectedTicker()!)">
                   {{ watchlistService.isWatchlisted(selectedTicker()!) ? '★ Watchlisted' : '☆ Add to Watchlist' }}
@@ -360,6 +446,7 @@
           <button class="alert-item" [class]="'alert-item alert-' + alert.tradeBias.toLowerCase()" (click)="openAlert(alert)">
             <div class="alert-top"><span class="alert-ticker">{{ alert.tickerSymbol }}</span><span class="alert-score">{{ alert.totalScore }}/100</span><span class="bias-badge" [class]="biasBadgeClass(alert.tradeBias)">{{ alert.tradeBias }}</span></div>
             <div class="alert-bottom"><span class="alert-signals">{{ alert.signalSummary || 'No summary provided' }}</span><span class="alert-time">{{ alert.alertedAt || '' }}</span></div>
+            <div class="alert-actions" (click)="$event.stopPropagation()"><span class="mini-action card-chip" (click)="addTickerToReview(alert.tickerSymbol, 'Reviewing')">{{ isReviewed(alert.tickerSymbol) ? 'In Review' : 'Review' }}</span></div>
           </button>
         }
       </div>
