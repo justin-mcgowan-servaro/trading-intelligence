@@ -156,6 +156,14 @@ h1 { margin: 0; font-size: 22px; }
 .buffer-types { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .buffer-tag { background: #21262d; border-radius: 999px; padding: 2px 8px; font-size: 11px; }
 .ai-pre { white-space: pre-wrap; font-family: inherit; line-height: 1.5; }
+.no-analysis { display: grid; gap: 10px; justify-items: start; background: #0d1117; border: 1px solid #21262d; border-radius: 8px; padding: 12px; }
+.no-analysis p { margin: 0; color: #8b949e; }
+.no-analysis-icon { font-size: 28px; }
+.analyze-btn { background: #1f6feb; color: #fff; border: 1px solid #58a6ff; border-radius: 6px; padding: 8px 12px; cursor: pointer; }
+.analyze-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.analysis-status { display: flex; align-items: center; gap: 8px; background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 10px; margin-bottom: 10px; }
+.analysis-status p { margin: 0; color: #c9d1d9; }
+.analysis-status.error { border-color: #f85149; background: #2d1218; }
 .history-table { width: 100%; border-collapse: collapse; }
 .history-table th, .history-table td { border-bottom: 1px solid #21262d; padding: 8px; text-align: left; }
 
@@ -167,6 +175,8 @@ h1 { margin: 0; font-size: 22px; }
 .alert-short { box-shadow: inset 4px 0 0 #ff7b72; }
 .alert-long { box-shadow: inset 4px 0 0 #3fb950; }
 .alert-watch { box-shadow: inset 4px 0 0 #d29922; }
+.alert-ai-ready { box-shadow: inset 4px 0 0 #58a6ff; }
+.ai-notice-pill { border: 1px solid #58a6ff; color: #58a6ff; border-radius: 999px; font-size: 11px; padding: 2px 8px; }
 
 @media (max-width: 1100px) {
   .workspace-grid { grid-template-columns: 1fr; }

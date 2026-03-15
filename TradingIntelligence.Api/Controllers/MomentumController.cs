@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
 using TradingIntelligence.Infrastructure.Data;
@@ -11,6 +12,9 @@ namespace TradingIntelligence.Api.Controllers;
 [Route("api/[controller]")]
 public class MomentumController : ControllerBase
 {
+    private const string AnalysisJobPrefix = "analysis-job";
+    private static readonly TimeSpan AnalysisJobTtl = TimeSpan.FromMinutes(10);
+
     private readonly AppDbContext _db;
     private readonly SignalAggregatorService _aggregator;
     private readonly IConnectionMultiplexer _redis;
@@ -186,14 +190,84 @@ public class MomentumController : ControllerBase
         var pub = _redis.GetSubscriber();
         await pub.PublishAsync(RedisChannel.Literal("scored-signals"), ticker);
     
+        var jobId = Guid.NewGuid().ToString("N");
+        var state = new AnalysisJobState(
+            jobId,
+            ticker,
+            latestScore.Id,
+            DateTime.UtcNow);
+
+        var db = _redis.GetDatabase();
+        await db.StringSetAsync(
+            BuildAnalysisJobKey(jobId),
+            JsonSerializer.Serialize(state),
+            AnalysisJobTtl);
+
         return Accepted(new
         {
             ticker,
             cached = false,
+            analysisJobId = jobId,
             message = "Analysis triggered — check back in a few seconds",
             currentScore = latestScore.TotalScore
         });
     }
+
+
+    // GET /api/momentum/analysis-jobs/{jobId}
+    // Returns frontend-facing status for an on-demand AI analysis trigger
+    [HttpGet("analysis-jobs/{jobId}")]
+    public async Task<IActionResult> GetAnalysisJobStatus(
+        string jobId,
+        CancellationToken cancellationToken = default)
+    {
+        var db = _redis.GetDatabase();
+        var raw = await db.StringGetAsync(BuildAnalysisJobKey(jobId));
+        if (raw.IsNullOrEmpty)
+            return NotFound(new { message = "Analysis job not found or expired" });
+
+        var state = JsonSerializer.Deserialize<AnalysisJobState>(raw!);
+        if (state == null)
+            return NotFound(new { message = "Analysis job state is invalid" });
+
+        var latestScore = await _db.MomentumScores
+            .Where(s => s.TickerSymbol == state.TickerSymbol)
+            .OrderByDescending(s => s.ScoredAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (latestScore == null)
+            return Ok(new
+            {
+                jobId,
+                ticker = state.TickerSymbol,
+                status = "processing",
+                message = "Waiting for score update"
+            });
+
+        var hasNewCompletedAnalysis = latestScore.Id > state.BaselineScoreId
+            && !string.IsNullOrWhiteSpace(latestScore.AiAnalysis);
+
+        if (hasNewCompletedAnalysis)
+        {
+            return Ok(new
+            {
+                jobId,
+                ticker = state.TickerSymbol,
+                status = "completed",
+                hasAnalysis = true,
+                scoredAt = MarketSessionHelper.ToSast(latestScore.ScoredAt)
+            });
+        }
+
+        return Ok(new
+        {
+            jobId,
+            ticker = state.TickerSymbol,
+            status = "processing",
+            hasAnalysis = false
+        });
+    }
+
     // GET /api/momentum/history
     // Returns last 20 scores per ticker for sparkline seeding on page load
     [HttpGet("history")]
@@ -222,4 +296,12 @@ public class MomentumController : ControllerBase
         return Ok(grouped);
     }
 
+    private static string BuildAnalysisJobKey(string jobId)
+        => $"{AnalysisJobPrefix}:{jobId}";
+
+    private sealed record AnalysisJobState(
+        string JobId,
+        string TickerSymbol,
+        int BaselineScoreId,
+        DateTime TriggeredAtUtc);
 }
