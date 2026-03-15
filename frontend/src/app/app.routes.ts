@@ -6,5 +6,11 @@ import { authGuard } from './core/guards/auth.guard';
 export const routes: Routes = [
   { path: 'login', component: AuthComponent },
   { path: '', component: DashboardComponent, canActivate: [authGuard] },
+  {
+    path: 'paper-trades',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/paper-trade-workbench/paper-trade-workbench.component').then((m) => m.PaperTradeWorkbenchComponent)
+  },
   { path: '**', redirectTo: '' }
 ];

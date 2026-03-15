@@ -9,6 +9,7 @@ import {
   signal
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { MomentumSignalService, MomentumUpdate } from '../../core/services/momentum-signal.service';
 import { environment } from '../../../environments/environment';
@@ -94,13 +95,14 @@ interface ReviewedTickerView {
 
 @Component({
   selector: 'app-dashboard',
-  imports: [CommonModule, SparklineComponent],
+  imports: [CommonModule, SparklineComponent, RouterLink],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class DashboardComponent implements OnInit, OnDestroy {
   private http = inject(HttpClient);
+  private route = inject(ActivatedRoute);
   signalService = inject(MomentumSignalService);
   watchlistService = inject(WatchlistService);
   authService = inject(AuthService);
@@ -339,6 +341,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.loadAlerts();
     this.signalService.connect();
     this.watchlistService.load();
+
+    const tickerFromQuery = this.route.snapshot.queryParamMap.get('ticker');
+    if (tickerFromQuery) {
+      this.selectTicker(tickerFromQuery.toUpperCase());
+    }
 
     this.refreshIntervals.push(setInterval(() => this.currentTime.set(this.getSastTime()), 1000));
     this.refreshIntervals.push(setInterval(() => this.loadScores(), 5 * 60 * 1000));

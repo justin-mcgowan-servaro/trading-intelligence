@@ -1,0 +1,136 @@
+<div class="workbench">
+  <div class="header panel">
+    <div>
+      <h1>🧪 Paper Trade Workbench</h1>
+      <p class="subhead">Track open exposure, closed outcomes, and ticker-level signal accuracy in one operator flow.</p>
+    </div>
+    <div class="header-actions">
+      <a class="nav-btn" routerLink="/">Momentum Dashboard</a>
+      <button class="nav-btn" type="button" (click)="loadWorkbench()">Refresh</button>
+    </div>
+  </div>
+
+  <div class="summary-strip panel">
+    <div class="summary-card">
+      <span class="summary-value">{{ openTrades().length }}</span>
+      <span class="summary-label">Open Trades</span>
+    </div>
+    <div class="summary-card">
+      <span class="summary-value">{{ closedTrades().length }}</span>
+      <span class="summary-label">Recent Closed</span>
+    </div>
+    <div class="summary-card">
+      <span class="summary-value text-green">{{ wins() }}</span>
+      <span class="summary-label">Wins</span>
+    </div>
+    <div class="summary-card">
+      <span class="summary-value text-red">{{ losses() }}</span>
+      <span class="summary-label">Losses</span>
+    </div>
+    <div class="summary-card">
+      <span class="summary-value">{{ avgWinRate() === null ? '—' : (avgWinRate()! | number:'1.0-2') + '%' }}</span>
+      <span class="summary-label">Avg Accuracy</span>
+    </div>
+  </div>
+
+  <div class="toolbar panel">
+    <input
+      type="search"
+      class="toolbar-input"
+      placeholder="Search ticker..."
+      [value]="tickerSearch()"
+      (input)="setTickerSearch($any($event.target).value)" />
+
+    <select class="toolbar-select" [value]="tradeViewFilter()" (change)="setTradeViewFilter($any($event.target).value)">
+      <option value="all">All statuses</option>
+      <option value="open">Open only</option>
+      <option value="closed">Closed only</option>
+    </select>
+
+    <select class="toolbar-select" [value]="directionFilter()" (change)="setDirectionFilter($any($event.target).value)">
+      <option value="all">All directions</option>
+      <option value="long">Long</option>
+      <option value="short">Short</option>
+    </select>
+  </div>
+
+  @if (loading()) {
+    <div class="panel state-card">Loading paper trade workbench...</div>
+  } @else if (error()) {
+    <div class="panel state-card error">{{ error() }}</div>
+  } @else {
+    <div class="grid">
+      <section class="panel">
+        <h2>Open Paper Trades</h2>
+        @if (filteredOpenTrades().length === 0) {
+          <p class="empty-state">No open paper trades match this filter.</p>
+        } @else {
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Ticker</th>
+                  <th>Direction</th>
+                  <th>Entry</th>
+                  <th>PnL %</th>
+                  <th>Score @ Entry</th>
+                  <th>Opened</th>
+                  <th>Accuracy</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (trade of filteredOpenTrades(); track trade.id) {
+                  <tr [class]="rowClass(trade)">
+                    <td><a [routerLink]="'/'" [queryParams]="{ ticker: trade.tickerSymbol }">{{ trade.tickerSymbol }}</a></td>
+                    <td>{{ tradeDirection(trade.direction) }}</td>
+                    <td>{{ trade.entryPrice | number:'1.2-4' }}</td>
+                    <td>{{ trade.pnlPercent === null || trade.pnlPercent === undefined ? '—' : (trade.pnlPercent | number:'1.2-2') + '%' }}</td>
+                    <td>{{ trade.totalScoreAtEntry | number:'1.0-2' }}</td>
+                    <td>{{ trade.openedAt | date:'MMM d, HH:mm' }}</td>
+                    <td>{{ tickerAccuracy(trade.tickerSymbol)?.winRate === undefined ? '—' : (tickerAccuracy(trade.tickerSymbol)!.winRate | number:'1.0-2') + '%' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+
+      <section class="panel">
+        <h2>Recent Closed Paper Trades</h2>
+        @if (filteredClosedTrades().length === 0) {
+          <p class="empty-state">No closed trades are available for this filter range.</p>
+        } @else {
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Ticker</th>
+                  <th>Status</th>
+                  <th>Outcome</th>
+                  <th>PnL %</th>
+                  <th>Exit</th>
+                  <th>Closed</th>
+                  <th>Accuracy</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (trade of filteredClosedTrades(); track trade.id) {
+                  <tr [class]="rowClass(trade)">
+                    <td><a [routerLink]="'/'" [queryParams]="{ ticker: trade.tickerSymbol }">{{ trade.tickerSymbol }}</a></td>
+                    <td>{{ tradeStatus(trade.status) }}</td>
+                    <td>{{ tradeOutcome(trade.outcome) }}</td>
+                    <td>{{ trade.pnlPercent === null || trade.pnlPercent === undefined ? '—' : (trade.pnlPercent | number:'1.2-2') + '%' }}</td>
+                    <td>{{ trade.exitPrice === null || trade.exitPrice === undefined ? '—' : (trade.exitPrice | number:'1.2-4') }}</td>
+                    <td>{{ trade.closedAt ? (trade.closedAt | date:'MMM d, HH:mm') : '—' }}</td>
+                    <td>{{ tickerAccuracy(trade.tickerSymbol)?.winRate === undefined ? '—' : (tickerAccuracy(trade.tickerSymbol)!.winRate | number:'1.0-2') + '%' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+    </div>
+  }
+</div>
